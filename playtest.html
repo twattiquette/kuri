@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
+<title>kuri</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1><span aria-hidden="true">🐾 </span>kuri</h1>
+  <div class="collapse-bar">
+    <label class="icon-toggle" title="dyslexia: switches to a dyslexia-friendly font"><input type="checkbox" id="dyslexiaToggle" aria-label="dyslexia" aria-describedby="dyslexiaDesc"><span aria-hidden="true">🔤</span><span id="dyslexiaDesc" class="sr-only">switches to a dyslexia-friendly font</span></label>
+    <button id="themeToggle" type="button" class="section-toggle"></button>
+    <button type="button" class="section-toggle" id="modeSettingsToggle" aria-controls="modeSettingsPanel" aria-expanded="false" aria-label="options" title="options">⚙️</button>
+    <button type="button" class="section-toggle" id="recordsToggle" aria-controls="recordsPanel" aria-expanded="false"></button>
+    <button type="button" class="section-toggle" id="blurbToggle" aria-controls="blurb" aria-expanded="true"></button>
+  </div>
+  <div class="mode-settings-panel hidden" id="modeSettingsPanel">
+    <span class="diff-label">difficulty:</span>
+    <button type="button" id="difficultyCycle" class="diff-cycle">default</button>
+    <label class="icon-toggle" title="guardian: lets you undo a run-ending answer"><input type="checkbox" id="guardianToggle" aria-label="guardian" aria-describedby="guardianDesc"><span aria-hidden="true">🛡️</span><span id="guardianDesc" class="sr-only">lets you undo a run-ending answer</span></label>
+    <label class="icon-toggle" title="regen: 3 clean missions in a row regains a life"><input type="checkbox" id="regenToggle" aria-label="regen" aria-describedby="regenDesc"><span aria-hidden="true">💗</span><span id="regenDesc" class="sr-only">3 clean missions in a row regains a life</span></label>
+    <label class="icon-toggle" title="endless: no mission limit while lives hold"><input type="checkbox" id="endlessToggle" aria-label="endless" aria-describedby="endlessDesc"><span aria-hidden="true">♾️</span><span id="endlessDesc" class="sr-only">no mission limit while lives hold</span></label>
+    <label class="icon-toggle" title="challenge: [WIP] per-mission countdown, no effect yet"><input type="checkbox" id="challengeToggle" aria-label="challenge" aria-describedby="challengeDesc"><span aria-hidden="true">⏱️</span><span id="challengeDesc" class="sr-only">work in progress, per-mission countdown, no effect yet</span></label>
+    <label class="toggle"><input type="checkbox" id="devToggle"> developer</label>
+  </div>
+  <div class="blurb" id="blurb">
+    <p>You're a trainee at a spy academy, learning to hold a cover under pressure.
+    Most missions drop you in as the sole decider: read your cover, then choose the action they'd actually take.
+    Stay in character and the moment passes clean; break character and you give off a tell, and every tell chips away at your nine lives.</p>
+    <p>Other missions flip the lens into a whodunnit: you're shown a profile one suspect claims as their alibi, then observe each suspect across three scenes. The innocent mostly hold true, bar the odd slip; the imposter, faking a disposition that isn't theirs, slips scene after scene. Read the room and accuse the cat whose tells form a pattern. Misread it and the tell lands on you.</p>
+    <p>Spend all nine lives and your cover's blown, the run's over. Maintain your cover, read the room, watch for tells, and climb from Recruit to Master Spy.</p>
+  </div>
+  <div class="records-panel hidden" id="recordsPanel" aria-label="personal records"></div>
+</header>
+
+<main>
+  <div class="controls" role="group" aria-label="game controls">
+    <button id="resetPool" class="danger">Restart Game</button>
+    <div class="util">
+      <button id="newMission" class="primary">Start Game</button>
+    </div>
+  </div>
+
+  <div class="status-line" id="statusLine" role="status"></div>
+
+  <div class="stats-header">
+    <img id="avatar" class="avatar" alt="" />
+    <div class="stats">
+      <div class="stat lives" id="livesBar"></div>
+      <div class="stat" id="tally"></div>
+      <div class="stat-row">
+        <span class="stat" id="score"></span>
+        <span class="stat" id="rank"></span>
+      </div>
+    </div>
+  </div>
+  <div id="announcer" class="sr-only" role="status"></div>
+
+  <div id="missionArea"></div>
+
+  <section class="dev-panel hidden" id="devPanel" aria-label="Developer panel">
+    <h2 class="section-label">Developer info</h2>
+    <div id="devBody"></div>
+    <h2 class="section-label">Session history</h2>
+    <textarea id="debugLogOutput" class="debug-log-output" readonly aria-label="Debug log markdown, select all and copy to share"></textarea>
+  </section>
+
+</main>
+
+<div class="collapse-bar footer-bar">
+  <button type="button" class="section-toggle" id="footerToggle" aria-controls="footer" aria-expanded="true"></button>
+</div>
+<footer class="disclaimer" id="footer">
+  <p>kuri (pronounced "qree", <button type="button" id="ipaPlay" class="decode-toggle no-underline" aria-label="Play pronunciation">▶</button>/ˈkjʊri/) is fiction, built as a game. All scenarios invented for entertainment by someone with zero clearance for anything. Resemblance to real people or organisations? Failure of imagination. Nothing here is advice, and treating a spy game as tradecraft is a you problem. No warranties; play at own risk.</p>
+
+  <p class="licence">kuri © 2026<br>
+a solo human <a href="https://www.patreon.com/16348015/join" target="_blank" rel="noopener" title="support via patreon">hobby</a> + cat who insists on supervising + code slopped by Claude<br>
+	Licence: <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></p>
+</footer>
+
+<script src="data.js" defer></script>
+<script src="engine.js" defer></script>
+<script src="mission-ui.js" defer></script>
+<script src="whodunnit-ui.js" defer></script>
+<script src="app-chrome.js" defer></script>
+</body>
+</html>

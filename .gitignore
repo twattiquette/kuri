@@ -1,0 +1,33 @@
+# Publish only the game and the images it references. Everything else —
+# design docs, memory, tooling, unused art — stays local and is never pushed.
+/*
+!.gitignore
+!index.html
+!playtest.html
+!data.js
+!engine.js
+!mission-ui.js
+!whodunnit-ui.js
+!app-chrome.js
+!style.css
+
+# Under asset/, keep only the images the game actually loads.
+!/asset/
+/asset/*
+!/asset/img/
+/asset/img/*
+!/asset/img/cover-*.png
+!/asset/img/facet-*.png
+!/asset/img/cat-*.png
+!/asset/img/handler.png
+!/asset/img/coverblown.png
+!/asset/img/ee9k.png
+!/asset/img/eepi.png
+!/asset/img/eemc.png
+
+# Self-hosted dyslexia-friendly font (opt-in toggle), SIL-OFL licensed.
+!/asset/fonts/
+/asset/fonts/*
+!/asset/fonts/OpenDyslexic-Regular.woff2
+!/asset/fonts/OpenDyslexic-Bold.woff2
+!/asset/fonts/OFL.txt
