@@ -1,3 +1,22 @@
+function timerControlsHtml() {
+  return `<span class="challenge-timer" aria-hidden="true"></span>`;
+}
+
+function formatClock(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function renderRunClock() {
+  const el = document.getElementById("runClock");
+  if (el) el.innerHTML = `<span class="stat-label">Run time</span> <b>${formatClock(elapsedMs())}</b>`;
+}
+
+function renderTimeoutDebrief() {
+  return `<div class="debrief" id="handlerDebrief" tabindex="-1"><p class="handler-label"><img class="handler-portrait" src="${HANDLER_IMG}" alt="">THE HANDLER</p>` +
+    `<p class="verdict tell">Time ran out. You hesitated, the moment passed, and the room noticed. Cover exposed, one life lost.</p></div>`;
+}
+
 function setAvatar() {
   const img = document.getElementById("avatar");
   if (img) img.src = AVATAR_POOL[Math.floor(Math.random() * AVATAR_POOL.length)];
@@ -196,21 +215,24 @@ function restartMorseAudio(text) {
 function missionHeader(s) {
   return `<div class="mission-id" id="missionId" tabindex="-1">` +
     `<span><span class="stat-label">Current mission</span> <b>${s.id}</b></span>` +
-    `<span class="challenge-timer" id="challengeTimer" aria-hidden="true"></span>` +
     `</div>`;
 }
 
 function renderChallengeTimer() {
-  const el = document.getElementById("challengeTimer");
-  if (!el) return;
-  if (!challengeEnabled() || !current || current.chosen !== null || current.challengeMsLeft == null) {
-    el.textContent = "";
-    el.classList.remove("challenge-urgent");
-    return;
-  }
-  const secs = Math.max(0, Math.ceil(current.challengeMsLeft / 1000));
-  el.textContent = `⏱ ${secs}s`;
-  el.classList.toggle("challenge-urgent", secs <= 10);
+  const counting = challengeCountingDown();
+  const frozen = !counting && challengeEnabled() && !!current && (current.chosen !== null || current.timedOut)
+    && current.challengeMsLeft != null && !isFinalised() && !trainingComplete && !pendingEgg;
+  document.querySelectorAll(".challenge-timer").forEach((el) => {
+    if (!counting && !frozen) {
+      el.textContent = "";
+      el.classList.remove("challenge-urgent", "challenge-paused");
+      return;
+    }
+    const secs = Math.max(0, Math.ceil(current.challengeMsLeft / 1000));
+    el.textContent = `${secs} ⏱`;
+    el.classList.toggle("challenge-urgent", counting && secs <= 10);
+    el.classList.toggle("challenge-paused", frozen);
+  });
 }
 
 let briefShown = true;
@@ -218,23 +240,46 @@ function briefBar() {
   const label = briefShown ? "Hide" : "Show";
   const caret = briefShown ? "▾" : "▸";
   return `<div class="collapse-bar brief-bar"><h2 class="section-label">THE BRIEF</h2>` +
-    `<button type="button" class="section-toggle" id="briefToggle" aria-controls="briefBody" aria-expanded="${briefShown}">` +
+    `<button type="button" class="section-toggle" id="briefToggle" data-action="brief-toggle" aria-controls="briefBody" aria-expanded="${briefShown}">` +
     `<span class="caret" aria-hidden="true">${caret}</span>${label} brief</button></div>`;
 }
 
 function renderScoreEgg(area, egg) {
   let html = `<div class="blown score-egg"><img class="blown-img" src="${egg.img}" alt=""><p class="blown-caption">${egg.caption}</p></div>`;
-  html += `<div class="status-line score-egg"></div>`;
+  html += `<div class="status-row"><div class="status-line score-egg"></div>${timerControlsHtml()}</div>`;
   html += `<div class="controls bottom-controls" role="group" aria-label="run controls">`;
-  if (skippedStack.length) html += `<button id="returnBtn" class="back-btn">↩ Return to skipped</button>`;
-  html += `<div class="util"><button id="newMissionBottom" class="primary">Next Mission →</button></div>`;
+  if (skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
+  html += `<div class="util"><button id="newMissionBottom" class="primary" data-action="next-mission">Next Mission →</button></div>`;
   html += `</div>`;
   area.innerHTML = html;
   setStatus(egg.status);
-  const returnBtn = document.getElementById("returnBtn");
-  if (returnBtn) returnBtn.addEventListener("click", returnToSkipped);
-  const nb = document.getElementById("newMissionBottom");
-  if (nb) nb.addEventListener("click", newMission);
+  renderChallengeTimer();
+}
+
+function renderRunEndScreen(area, outcome) {
+  const blown = outcome === "blown";
+  if (blown) {
+    const avatarEl = document.getElementById("avatar");
+    if (avatarEl) avatarEl.src = assetImg("coverblown.png");
+  }
+  const bannerText = blown ? "COVER BLOWN" : "TRAINING COMPLETE";
+  let html = `<div class="debrief${blown ? " outcome-blown" : ""}">` +
+    `<p class="run-end-banner${blown ? " cracked" : ""}">${bannerText}</p>` +
+    `<p class="handler-label"><img class="handler-portrait" src="${HANDLER_IMG}" alt="">THE HANDLER</p>` +
+    `<div class="handler-prose">${handlerProseLines(outcome).map(t => `<p>${t}</p>`).join("")}</div>` +
+    runReportHtml() +
+    `<p>Press <b>Restart Game</b> to start a new run.</p><p class="sub-hint">Too difficult? Adjust difficulty in ⚙️ options above!</p></div>`;
+  html += `<div class="status-row"><div class="status-line${blown ? " retired" : ""}"></div>${timerControlsHtml()}</div>`;
+  html += `<div class="controls bottom-controls" role="group" aria-label="run controls">` +
+    `<button id="restartBottom" class="danger" data-action="reset-pool">Restart Game</button>` +
+    `<button id="saveReportBtn" class="secondary" data-action="save-report" data-outcome="${outcome}">Save Report</button>` +
+    `<div class="util"><button id="newMissionBottom" class="primary" data-action="next-mission" disabled>Start Game</button></div>` +
+    `</div>`;
+  area.innerHTML = html;
+  setStatus(blown ? "🐾 The Handler's claws come out. \"That's the ninth life. There isn't a tenth.\"" : "");
+  renderChallengeTimer();
+  const topBtn = document.getElementById("saveReportBtnTop");
+  if (topBtn) { topBtn.classList.remove("hidden"); topBtn.dataset.outcome = outcome; }
 }
 
 function renderMission() {
@@ -243,8 +288,12 @@ function renderMission() {
   const guardianOn = document.getElementById("guardianToggle").checked;
   renderLivesBar();
   renderTally();
+  renderChallengeTimer();
+  syncChallengeLock();
+  const topSaveBtn = document.getElementById("saveReportBtnTop");
+  if (topSaveBtn && !finalised && !trainingComplete) topSaveBtn.classList.add("hidden");
   document.getElementById("newMission").textContent =
-    (trainingComplete || !current) ? "Start Game" : (current.chosen === null ? "Skip →" : (retired && guardianOn ? "End run →" : "Next Mission →"));
+    (trainingComplete || !current) ? "Start Game" : (current.chosen === null && !current.timedOut ? "Skip →" : (retired && guardianOn ? "End run →" : "Next Mission →"));
   document.getElementById("newMission").disabled = finalised || trainingComplete;
   document.getElementById("statusLine").classList.toggle("retired", finalised);
   document.getElementById("statusLine").classList.toggle("score-egg", !!pendingEgg);
@@ -256,45 +305,11 @@ function renderMission() {
     return;
   }
   if (finalised) {
-    const topAdvance = document.getElementById("newMission");
-    let html = `<div class="blown"><img class="blown-img" src="${assetImg("coverblown.png")}" alt=""><p class="blown-caption">COVER BLOWN</p>` +
-      `<p class="handler-label"><img class="handler-portrait" src="${HANDLER_IMG}" alt="">THE HANDLER</p>` +
-      `<div class="handler-prose">${handlerProseLines("blown").map(t => `<p>${t}</p>`).join("")}</div>` +
-      runReportHtml() +
-      `<p>Press <b>Restart Game</b> to start a new run.</p><p class="sub-hint">Too difficult? Adjust difficulty in ⚙️ options above!</p></div>`;
-    html += `<div class="status-line retired"></div>`;
-    html += `<div class="controls bottom-controls" role="group" aria-label="run controls">` +
-      `<button id="restartBottom" class="danger">Restart Game</button>` +
-      `<button id="saveReportBtn" class="secondary">Save Report</button>` +
-      `<div class="util"><button id="newMissionBottom" class="primary" disabled>${topAdvance.textContent}</button></div>` +
-      `</div>`;
-    area.innerHTML = html;
-    setStatus(poolStatusLine());
-    const rb = document.getElementById("restartBottom");
-    if (rb) rb.addEventListener("click", resetPool);
-    const nb = document.getElementById("newMissionBottom");
-    if (nb) nb.addEventListener("click", newMission);
-    const srb = document.getElementById("saveReportBtn");
-    if (srb) srb.addEventListener("click", () => saveReport("blown"));
+    renderRunEndScreen(area, "blown");
     return;
   }
   if (trainingComplete) {
-    let html = `<div class="debrief"><p class="handler-label"><img class="handler-portrait" src="${HANDLER_IMG}" alt="">THE HANDLER</p>` +
-      `<div class="handler-prose">${handlerProseLines("complete").map(t => `<p>${t}</p>`).join("")}</div>` +
-      runReportHtml() +
-      `<p>Press <b>Restart Game</b> to start a new run.</p><p class="sub-hint">Too difficult? Adjust difficulty in ⚙️ options above!</p></div>`;
-    html += `<div class="status-line"></div>`;
-    html += `<div class="controls bottom-controls" role="group" aria-label="run controls">` +
-      `<button id="restartBottom" class="danger">Restart Game</button>` +
-      `<button id="saveReportBtn" class="secondary">Save Report</button>` +
-      `<div class="util"><button id="newMissionBottom" class="primary" disabled>Start Game</button></div>` +
-      `</div>`;
-    area.innerHTML = html;
-    setStatus(poolStatusLine());
-    const rb = document.getElementById("restartBottom");
-    if (rb) rb.addEventListener("click", resetPool);
-    const srb = document.getElementById("saveReportBtn");
-    if (srb) srb.addEventListener("click", () => saveReport("complete"));
+    renderRunEndScreen(area, "complete");
     return;
   }
   if (!current) {
@@ -309,81 +324,56 @@ function renderMission() {
   const morseHidden = s.morse && !current.morseRevealed;
   html += briefBar();
   html += `<div id="briefBody" class="${briefShown ? "" : "hidden"}">`;
-  if (s.morse) html += `<button id="morseToggle" class="decode-toggle" type="button" aria-pressed="${!morseHidden}">${morseHidden ? "Decode" : "Hide plain text"}</button> <span class="morse-label">Audio:</span> <button id="morsePlay" class="decode-toggle no-underline" type="button">${morsePlayHtml(s.situation)}</button> <button id="morseRestart" class="decode-toggle no-underline" type="button" aria-label="restart audio playback"><span aria-hidden="true">↺</span> <span class="morse-word">Restart</span></button>`;
-  html += `<div class="situation">${paras(s.situation, morseHidden ? toMorse : null)}</div>`;
+  if (s.morse) html += `<button id="morseToggle" class="decode-toggle" type="button" data-action="morse-toggle" aria-pressed="${!morseHidden}">${morseHidden ? "Decode" : "Hide plain text"}</button> <span class="morse-label">Audio:</span> <button id="morsePlay" class="decode-toggle no-underline" type="button" data-action="morse-play">${morsePlayHtml(s.situation)}</button> <button id="morseRestart" class="decode-toggle no-underline" type="button" data-action="morse-restart" aria-label="restart audio playback"><span aria-hidden="true">↺</span> <span class="morse-word">Restart</span></button>`;
+  const situationText = s.level === "Easy" ? s.situation + "\n\n" + EASY_COVER_HINT : s.situation;
+  html += `<div class="situation">${paras(situationText, morseHidden ? toMorse : null)}</div>`;
   html += `</div>`;
   html += `<h2 class="section-label">WHAT DO YOU DO</h2>`;
   const facetNote = current.legend.facetIds.length ? " (traits are flavour: play one and it shows)" : "";
   html += `<p class="flavour-note">act out of character and you risk a tell${facetNote}</p>`;
   html += `<div class="options" role="group" aria-label="response options">`;
-  const devMode = document.getElementById("devToggle").checked;
-  const locked = retired && !guardianOn && !devMode;
   s.options.forEach((opt, i) => {
     const isChosen = current.chosen === i;
-    const disabled = current.chosen !== null && !devMode && (!isChosen || locked) ? "disabled" : "";
-    const cls = isChosen ? "opt-btn selected" : "opt-btn";
-    const prefix = isChosen ? "✓ " : `${i + 1}. `;
+    const showChosen = isChosen && !current.reselecting;
+    const disabled = (missionInteractable() || (isChosen && retired && guardianOn)) ? "" : "disabled";
+    const cls = showChosen ? "opt-btn selected" : "opt-btn";
+    const prefix = showChosen ? "✓ " : `${i + 1}. `;
     const clean = opt.replace(/^Send /, "");
     const payload = morseHidden ? toMorse(clean) : clean;
     const label = (s.morse || s.pi) ? `Send ${payload}` : payload;
-    html += `<button ${disabled} data-idx="${i}" class="${cls}">${prefix}${label}</button>`;
+    html += `<button ${disabled} data-action="choose" data-idx="${i}" class="${cls}">${prefix}${label}</button>`;
   });
   html += `</div>`;
 
   if (current.chosen === null && hintEligible()) {
     html += `<div class="hint-row">`;
-    html += `<button id="hintBtn" class="secondary" type="button" ${hintsLeft <= 0 ? "disabled" : ""}>hint (${hintsLeft})</button>`;
+    html += `<button id="hintBtn" class="secondary" type="button" data-action="hint" ${hintsLeft <= 0 ? "disabled" : ""}>hint (${hintsLeft})</button>`;
     if (current.hintMessage) html += `<p class="hint-text" role="status">${current.hintMessage}</p>`;
     html += `</div>`;
   }
 
-  if (current.chosen !== null) {
+  if (current.timedOut) {
+    html += renderTimeoutDebrief();
+  } else if (current.chosen !== null) {
     html += renderDebrief();
   }
 
   const answered = current.chosen !== null;
-  html += `<div class="status-line"></div>`;
+  const resolved = answered || current.timedOut;
+  html += `<div class="status-row"><div class="status-line"></div>${timerControlsHtml()}</div>`;
   html += `<div class="controls bottom-controls" role="group" aria-label="mission controls">`;
-  if (!answered && skippedStack.length) html += `<button id="returnBtn" class="back-btn">↩ Return to skipped</button>`;
+  if (!resolved && skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
+  else if (answered && guardianOn && !current.reselecting) html += `<button id="changeAnswerBtn" class="back-btn" data-action="reselect">↺ Change answer</button>`;
   html += `<div class="util">`;
-  html += `<button id="nextBtn" class="primary">${answered ? (retired && guardianOn ? "End run" : "Next Mission") : "Skip"} →</button>`;
+  html += `<button id="nextBtn" class="primary" data-action="next-mission"${current.reselecting ? " disabled" : ""}>${resolved ? (retired && guardianOn ? "End run" : "Next Mission") : "Skip"} →</button>`;
   html += `</div></div>`;
-  const leftHint = !answered && skippedStack.length ? `<kbd>←</kbd> return to skipped` : "";
-  html += `<div class="kbd-hint"><span>${leftHint}</span><span><kbd>0</kbd> cover · <kbd>1</kbd>–<kbd>${s.options.length}</kbd>/<kbd>↑</kbd><kbd>↓</kbd> select</span><span>skip / next mission <kbd>→</kbd></span></div>`;
+  const leftHint = !resolved && skippedStack.length ? `<kbd>←</kbd> return to skipped`
+    : (answered && guardianOn && !current.reselecting ? `<kbd>←</kbd> change answer` : "");
+  html += `<div class="kbd-hint"><span>${leftHint}</span><span><kbd>0</kbd> cover · <kbd>1</kbd>–<kbd>${s.options.length}</kbd> select</span><span>skip / next mission <kbd>→</kbd></span></div>`;
 
   area.innerHTML = html;
   setStatus(missionStatusLine());
   renderChallengeTimer();
-
-  document.querySelectorAll(".opt-btn").forEach(btn => {
-    btn.addEventListener("click", () => chooseOption(parseInt(btn.dataset.idx, 10)));
-  });
-  const hintBtn = document.getElementById("hintBtn");
-  if (hintBtn) hintBtn.addEventListener("click", useHint);
-  const briefToggle = document.getElementById("briefToggle");
-  if (briefToggle) briefToggle.addEventListener("click", () => {
-    briefShown = !briefShown;
-    renderMission();
-  });
-  const morseToggle = document.getElementById("morseToggle");
-  if (morseToggle) morseToggle.addEventListener("click", () => {
-    current.morseRevealed = !current.morseRevealed;
-    renderMission();
-  });
-  const morsePlay = document.getElementById("morsePlay");
-  if (morsePlay) morsePlay.addEventListener("click", () => {
-    toggleMorseAudio(s.situation);
-    morsePlay.innerHTML = morsePlayHtml(s.situation);
-  });
-  const morseRestart = document.getElementById("morseRestart");
-  if (morseRestart) morseRestart.addEventListener("click", () => {
-    restartMorseAudio(s.situation);
-    if (morsePlay) morsePlay.innerHTML = morsePlayHtml(s.situation);
-  });
-  const nextBtn = document.getElementById("nextBtn");
-  if (nextBtn) nextBtn.addEventListener("click", newMission);
-  const returnBtn = document.getElementById("returnBtn");
-  if (returnBtn) returnBtn.addEventListener("click", returnToSkipped);
 }
 
 function renderDebrief() {
@@ -404,29 +394,29 @@ function renderDebrief() {
   return html;
 }
 
-const TREND_BUCKET_LABEL = { grey: "Held", hairline: "Hairline tells", crack: "Cracked" };
-const TREND_BUCKET_VERB = { grey: "held", hairline: "hairline tell", crack: "cracked" };
-const WHO_VERB = { grey: "read right", crack: "misread" };
-const TREND_BUCKET_ORDER = ["grey", "hairline", "crack"];
+const TREND_BUCKET_ORDER = ["clean", "hairline", "crack"];
 
 function computeCoverTrendStats() {
   const stats = {};
-  const who = { correct: 0, total: 0, sceneCaught: 0, sceneReadable: 0 };
+  const who = { correct: 0, total: 0 };
+  const whoSceneByTier = { clean: { caught: 0, readable: 0 }, crack: { caught: 0, readable: 0 } };
   const bump = (id, tier) => {
     if (!id) return;
-    if (!stats[id]) stats[id] = { crack: 0, hairline: 0, grey: 0, missions: 0 };
+    if (!stats[id]) stats[id] = { crack: 0, hairline: 0, clean: 0, missions: 0 };
     stats[id].missions++;
     stats[id][tier]++;
   };
   history.forEach(h => {
+    if (h.timedOut) return;
     if (h.rows && h.rows.length) {
       const spine = h.rows[0];
       bump(spine.rowId, spine.tier);
     } else {
       who.total++;
-      if (h.total === 0) who.correct++;
-      who.sceneCaught += h.sceneCaught || 0;
-      who.sceneReadable += h.sceneReadable || 0;
+      const tier = h.total === 0 ? "clean" : "crack";
+      if (tier === "clean") who.correct++;
+      whoSceneByTier[tier].caught += h.sceneCaught || 0;
+      whoSceneByTier[tier].readable += h.sceneReadable || 0;
     }
   });
   const sortedIds = Object.keys(stats).sort((a, b) => {
@@ -448,13 +438,15 @@ function computeCoverTrendStats() {
     });
   });
   if (who.total) {
-    const whoByTier = { grey: who.correct, crack: who.total - who.correct };
-    ["grey", "crack"].forEach(tier => {
+    const whoByTier = { clean: who.correct, crack: who.total - who.correct };
+    ["clean", "crack"].forEach(tier => {
       const count = whoByTier[tier];
       if (!count) return;
       if (!groups[tier]) groups[tier] = { count: 0, items: [] };
       groups[tier].count += count;
-      groups[tier].items.push(`Whodunnit: ${WHO_VERB[tier]} in ${count}/${who.total}`);
+      const sc = whoSceneByTier[tier];
+      const sceneClause = sc.readable ? ` (${sc.caught}/${sc.readable} scenes)` : "";
+      groups[tier].items.push(`Imposter: ${WHO_VERB[tier]} in ${count}/${who.total}${sceneClause}`);
     });
   }
   return { groups, who, stats };
@@ -463,30 +455,28 @@ function computeCoverTrendStats() {
 function extraRunStats() {
   const regenFires = history.filter(h => h.regenApplied).length;
   const timeouts = history.filter(h => h.timedOut).length;
-  return { regenFires, livesReclaimed: regenFires * REGEN_LIVES, timeouts, guardianSaves };
+  return { regenFires, livesReclaimed: regenFires * REGEN_LIVES, timeouts, guardianSaves, guardianStreakResets };
 }
 
 function fullTrendsLines() {
   const { groups, who } = computeCoverTrendStats();
-  const bucketOrder = ["grey", "hairline", "crack"];
+  const bucketOrder = ["clean", "hairline", "crack"];
   const present = bucketOrder.filter(b => groups[b]);
   const lines = [];
   present.forEach(b => {
     lines.push({ kind: "summary", text: `${TREND_BUCKET_LABEL[b]}: ${groups[b].count}` });
     groups[b].items.forEach(text => lines.push({ kind: "entry", text }));
   });
-  if (who.sceneReadable) {
-    lines.push({ kind: "summary", text: `Whodunnit scenes: read ${who.sceneCaught} of ${who.sceneReadable} tells.` });
-  }
   const extra = extraRunStats();
   if (extra.regenFires) {
     lines.push({ kind: "summary", text: `Life regen restored ${extra.livesReclaimed} ${extra.livesReclaimed === 1 ? "life" : "lives"}.` });
   }
-  if (extra.guardianSaves) {
-    lines.push({ kind: "summary", text: `Guardian saved you from ${extra.guardianSaves} run-ending answer${extra.guardianSaves === 1 ? "" : "s"}.` });
+  if (extra.guardianSaves || extra.guardianStreakResets) {
+    const saveText = extra.guardianSaves ? `Guardian saved you from ${extra.guardianSaves} run-ending answer${extra.guardianSaves === 1 ? "" : "s"}` : "Guardian was used";
+    lines.push({ kind: "summary", text: `${saveText}, streak reset ${extra.guardianStreakResets} time${extra.guardianStreakResets === 1 ? "" : "s"}.` });
   }
   if (extra.timeouts) {
-    lines.push({ kind: "summary", text: `Challenge clock ran out ${extra.timeouts} time${extra.timeouts === 1 ? "" : "s"} this run ([WIP], no scoring effect yet).` });
+    lines.push({ kind: "summary", text: `Challenge clock ran out ${extra.timeouts} time${extra.timeouts === 1 ? "" : "s"} this run.` });
   }
   return lines;
 }
@@ -556,6 +546,7 @@ function drawReportCanvas(outcome, img) {
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const rankText = retired ? "Burn Notice" : computeRank();
   const missionsText = `${completedCount} completed · ${skippedCount} skipped`;
+  const runTimeText = formatElapsed(elapsedMs());
   const livesValueText = `${remaining} / ${POOL_SIZE}`;
   const scoreText = `${computeScore()}`;
   const titleText = "kuri · spy training report";
@@ -570,6 +561,7 @@ function drawReportCanvas(outcome, img) {
 
   const livesRowW = Math.max(statWidth("LIVES", livesValueText), POOL_SIZE * 15);
   const missionsRowW = statWidth("MISSIONS", missionsText);
+  const runTimeRowW = statWidth("RUN TIME", runTimeText);
   const scoreW = statWidth("SCORE", scoreText);
   ctx.font = "bold 10px sans-serif";
   const rankLabelW = ctx.measureText("RANK").width;
@@ -595,6 +587,7 @@ function drawReportCanvas(outcome, img) {
   const contentRight = Math.max(
     statsX + livesRowW,
     statsX + missionsRowW,
+    statsX + runTimeRowW,
     statsX + scoreRankRowW,
     marginX + titleW,
     marginX + bannerW,
@@ -650,6 +643,8 @@ function drawReportCanvas(outcome, img) {
   }
   sy += 22;
   drawStatLine(ctx, "MISSIONS", missionsText, statsX, sy, pal);
+  sy += 22;
+  drawStatLine(ctx, "RUN TIME", runTimeText, statsX, sy, pal);
   sy += 22;
   const afterScore = drawStatLine(ctx, "SCORE", scoreText, statsX, sy, pal);
   drawStatLine(ctx, "RANK", rankText, afterScore + 20, sy, pal);
@@ -722,7 +717,7 @@ async function saveReport(outcome) {
   a.download = fname;
   a.click();
   URL.revokeObjectURL(url);
-  setStatus(`Report saved: ${fname}`);
+  setStatus(`<span class="report-saved">Report saved: ${fname}</span>`);
 }
 
 function closestAchievementProgress(stats) {
@@ -747,8 +742,11 @@ function nextRankUp(stats) {
 }
 
 function retentionNudgeHtml() {
+  if (!RECORDS_ENABLED) return "";
   const stats = loadStats();
   const lines = [];
+  const nextRank = nextRankUp(stats);
+  if (nextRank) lines.push(`next rank to chase: ${nextRank}`);
   const closest = closestAchievementProgress(stats);
   if (closest) lines.push(`closest badge: ${closest.name} (${closest.current}/${closest.target})`);
   if (!lines.length) return "";
@@ -762,15 +760,15 @@ function formatElapsed(ms) {
 }
 
 function runReportHtml() {
-  const elapsed = `<p class="run-elapsed">run time: ${formatElapsed(Date.now() - runStartedAt)}</p>`;
+  const elapsed = `<p class="run-elapsed">run time: ${formatElapsed(elapsedMs())}</p>`;
   return `<div class="run-report">${coverTrendsHtml()}${elapsed}</div>${retentionNudgeHtml()}`;
 }
 
 function worstCoverFlavor(blown) {
   const cleanFallback = blown ? "No pattern to it. Just ran out of runway." : "Every cover held clean. No tells to speak of.";
   const { stats, who } = computeCoverTrendStats();
-  const TIER_RANK = { grey: 0, hairline: 1, crack: 2 };
-  const worstTierOf = id => stats[id].crack > 0 ? "crack" : stats[id].hairline > 0 ? "hairline" : "grey";
+  const TIER_RANK = { clean: 0, hairline: 1, crack: 2 };
+  const worstTierOf = id => stats[id].crack > 0 ? "crack" : stats[id].hairline > 0 ? "hairline" : "clean";
 
   const candidates = Object.keys(stats).map(id => {
     const tier = worstTierOf(id);
@@ -779,18 +777,18 @@ function worstCoverFlavor(blown) {
       tier,
       count: stats[id][tier],
       missions: stats[id].missions,
-      verb: tier === "crack" ? "cracked" : "went hairline",
+      verb: tier === "crack" ? "cracking" : "going hairline",
     };
   });
   const whoWrong = who.total - who.correct;
   if (whoWrong > 0) {
-    candidates.push({ name: "Whodunnit", tier: "crack", count: whoWrong, missions: who.total, verb: "misread" });
+    candidates.push({ name: "Imposter reads", tier: "crack", count: whoWrong, missions: who.total, verb: "misreading" });
   }
   if (!candidates.length) return cleanFallback;
 
-  let worstTier = "grey";
+  let worstTier = "clean";
   candidates.forEach(c => { if (TIER_RANK[c.tier] > TIER_RANK[worstTier]) worstTier = c.tier; });
-  if (worstTier === "grey") return cleanFallback;
+  if (worstTier === "clean") return cleanFallback;
 
   const atWorstTier = candidates.filter(c => c.tier === worstTier);
   const worstCount = Math.max(...atWorstTier.map(c => c.count));
@@ -799,26 +797,25 @@ function worstCoverFlavor(blown) {
   const outingPhrase = (count, missions) => {
     if (missions === 1) return "the one time you played it";
     if (count === missions) return "every time you played it";
-    if (count === 1) return "only once";
+    if (count === 1) return "once";
     return "more than once";
   };
   if (tied.length === 1) {
     const c = tied[0];
-    return `${c.name} gave you away hardest: ${c.verb} ${outingPhrase(c.count, c.missions)}.`;
+    return `${c.name} cost you most: ${c.verb} ${outingPhrase(c.count, c.missions)}.`;
   }
   if (tied.length <= 3) {
     const names = tied.map(c => c.name);
     const list = names.length === 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
-    return `${list} all gave you away just as hard, no single worst.`;
+    return `${list} all cost you equally, no single worst.`;
   }
-  return `${tied.length} culprits gave you away equally hard, no single worst.`;
+  return `${tied.length} culprits cost you equally, no single worst.`;
 }
 
 function handlerProseLines(outcome) {
   if (outcome === "blown") {
     return [
-      "Cover blown for this run.",
-      `Your cover held for ${completedCount} mission${completedCount === 1 ? "" : "s"} before it cracked.`,
+      `${completedCount} mission${completedCount === 1 ? "" : "s"} in before your cover was burnt.`,
       worstCoverFlavor(true),
     ];
   }
@@ -842,15 +839,21 @@ function formatTimestamp(ts) {
 }
 
 function handleRechooseGuard(idx) {
-  const devMode = document.getElementById("devToggle").checked;
   const guardianOn = document.getElementById("guardianToggle").checked;
   if (current.chosen === idx) {
-    if (retired && !guardianOn && !devMode) return false;
-    if (retired && guardianOn) guardianSaves++;
-    goBack();
+    if (!retired && current.reselecting) {
+      current.reselecting = false;
+      renderMission();
+      return false;
+    }
+    if (retired && guardianOn) {
+      guardianSaves++;
+      guardianStreakResets++;
+      goBack(true);
+    }
     return false;
   }
-  return devMode;
+  return guardianOn && current.reselecting;
 }
 
 function undoRechoose() {
@@ -867,17 +870,22 @@ function applyCleanStreak(clean) {
   return regenJustFired;
 }
 
-function afterChoiceRender() {
+function afterChoiceRender(skipFocus) {
   renderMission();
   renderDevPanel();
   renderRecords();
+  if (skipFocus) return;
   const debriefEl = document.getElementById("handlerDebrief");
   if (debriefEl) debriefEl.focus({ preventScroll: true });
 }
 
 function renderTally() {
   const el = document.getElementById("tally");
-  if (el) el.innerHTML = `<span class="stat-label">Missions</span> <b>${completedCount}</b> completed · <b>${skippedCount}</b> skipped`;
+  if (el) {
+    const failedPart = challengeEnabled() ? ` · <b>${history.filter(h => h.timedOut).length}</b> failed` : "";
+    el.innerHTML = `<span class="stat-label">Missions</span> <b>${completedCount}</b> completed · <b>${skippedCount}</b> skipped${failedPart}`;
+  }
+  renderRunClock();
   const score = computeScore();
   const sc = document.getElementById("score");
   if (sc) sc.innerHTML = `<span class="stat-label">Score</span> <b>${score}</b>`;

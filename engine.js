@@ -8,6 +8,7 @@ let regenFired = false;
 let skippedCount = 0;
 let skippedStack = [];
 let guardianSaves = 0;
+let guardianStreakResets = 0;
 let usedLegends = {};
 let usedArchetypes = {};
 let shownEggs = {};
@@ -16,10 +17,17 @@ let coverAnchorReturn = null;
 let coverAnchored = false;
 let trainingComplete = false;
 let bypassTierGate = false;
-let lastScenarioId = null;
+let recentScenarios = [];
 let lastCoverId = null;
 let lastMode = null;
-let runStartedAt = Date.now();
+const REPEAT_WINDOW = 3;
+let runStartedAt = null;
+let runTimerStarted = false;
+
+function elapsedMs() {
+  if (runStartedAt == null) return 0;
+  return Date.now() - runStartedAt;
+}
 
 const POOL_SIZE = 9;
 const REGEN_STREAK_LENGTH = 3;
@@ -44,7 +52,7 @@ function weightFor(scenario, rowId, legend) {
   return SPINE_WEIGHT_TWO_FACET;
 }
 
-const FACET_DRIFT = { grey: 1.0, hairline: 0.3, crack: 0 };
+const FACET_DRIFT = { clean: 1.0, hairline: 0.3, crack: 0 };
 
 const MEDIUM_SLIVER = 0.25;
 const HARD_SLIVER = 0.375;
@@ -64,38 +72,38 @@ function ratioCost(rawExposure, maxExposure, remaining, sliver) {
   return Math.min(remaining, Math.max(1, Math.round(remaining * frac)));
 }
 
-const TIER_LABEL = { grey: "cover held", hairline: "hairline tell", crack: "cover cracked" };
-const FACET_TIER_LABEL = { grey: "cover drifted", hairline: "hairline drift", crack: "no drift" };
-const FACET_TIER_SWAP = { grey: "crack", hairline: "hairline", crack: "grey" };
+const TIER_LABEL = { clean: "cover held", hairline: "hairline tell", crack: "cover cracked" };
+const WHO_TIER_LABEL = { clean: "no drift", hairline: "hairline drift", crack: "cover cracked" };
+const FACET_TIER_LABEL = { clean: "cover drifted", hairline: "hairline drift", crack: "no drift" };
+const FACET_TIER_SWAP = { clean: "crack", hairline: "hairline", crack: "clean" };
 
 function tierLine(tier, name) {
-  if (tier === "grey") return `That's exactly what ${name} would do; anyone watching saw the cat they expected. No tell given.`;
+  if (tier === "clean") return `That's exactly what ${name} would do; anyone watching saw the cat they expected. No tell given.`;
   if (tier === "hairline") return `${name} might do that, but it takes explaining, and a sharp watcher files it away. A small leak in the cover, and it costs you.`;
   return `${name} would never do that; anyone watching just clocked a different cat under the fur. A clear tell, and it costs you dearly.`;
 }
 
 function facetDriftLine(tier, name) {
-  if (tier === "grey") return `You played ${name} louder than the cover carrying it. The trait pulled and you followed it; a watcher clocks the drift, and it costs you.`;
+  if (tier === "clean") return `You played ${name} louder than the cover carrying it. The trait pulled and you followed it; a watcher clocks the drift, and it costs you.`;
   if (tier === "hairline") return `${name} tugs at that one, and it shows, just a little. A watcher might miss it; the Handler doesn't.`;
   return `${name} pulled at that one, and you left it alone. The trait stayed where it belongs, under the cover. No drift.`;
 }
 
 function poolStatusLine() {
   const remaining = POOL_SIZE - spent;
-  if (retired) return "🐾 COVER BLOWN. The Handler's claws come out. \"That's the ninth life. There isn't a tenth.\"";
   if (regenFired) {
     regenFired = false;
-    const hearts = `<span class="regen-streak" title="hold your cover ${REGEN_STREAK_LENGTH} missions in a row to restore a life">${"💗".repeat(REGEN_STREAK_LENGTH)}</span>`;
+    const hearts = `<span class="regen-streak" title="${REGEN_STREAK_LENGTH} clean missions in a row regains a life. changing an answer via guardian breaks the streak">${"💗".repeat(REGEN_STREAK_LENGTH)}</span>`;
     return `<span class="regen-fired">🐾 Three covers held in a row. A life is restored.</span> ${hearts}`;
   }
   const parts = [];
   if (remaining <= 4) parts.push(`🐾 The Handler's tail lashes: “Nine lives, ${computeRank()}!”`);
-  if (document.getElementById("regenToggle").checked && cleanStreak >= 1 && spent > 0) {
+  if (document.getElementById("regenToggle").checked) {
     let hearts = "";
     for (let i = 0; i < REGEN_STREAK_LENGTH; i++) {
       hearts += i < cleanStreak ? "💗" : `<span class="regen-heart-empty">💗</span>`;
     }
-    parts.push(`<span class="regen-streak" title="hold your cover ${REGEN_STREAK_LENGTH} missions in a row to restore a life">${hearts}</span>`);
+    parts.push(`<span class="regen-streak" title="${REGEN_STREAK_LENGTH} clean missions in a row regains a life. changing an answer via guardian breaks the streak">${hearts}</span>`);
   }
   return parts.join(" ");
 }
@@ -172,6 +180,10 @@ function isFinalised() {
   return retired && (!current || current.chosen === null);
 }
 
+function missionInteractable() {
+  return !!current && !current.timedOut && (current.chosen === null || current.reselecting);
+}
+
 function missionStatusLine() {
   const guardianOn = document.getElementById("guardianToggle").checked;
   if (retired && current && current.chosen !== null) {
@@ -200,18 +212,33 @@ function computeRows(scenario, legend, idx) {
   });
 }
 
+function commitChoice(total, clean, timedOut, entry) {
+  spent += total;
+  retired = spent >= POOL_SIZE;
+  const regenJustFired = applyCleanStreak(clean);
+  entry.poolAfter = Math.min(spent, POOL_SIZE);
+  entry.regenApplied = regenJustFired;
+  entry.timedOut = timedOut;
+  history.push(entry);
+  history[history.length - 1].score = computeScore();
+  if (retired) recordRunEnd("blown");
+  return regenJustFired;
+}
+
 function chooseOption(idx) {
+  if (!current || current.timedOut) return;
   const guardianOn = document.getElementById("guardianToggle").checked;
   const rechoose = current.chosen !== null;
   if (rechoose && !handleRechooseGuard(idx)) return;
-  const timedOut = !rechoose && !!current.timedOut;
-  current.timedOut = false;
   const s = current.scenario;
   const rows = computeRows(s, current.legend, idx);
   const rawExposure = rows.reduce((a, r) => a + r.exposure, 0);
+  const guardianReselect = rechoose && guardianOn && current.reselecting;
 
   if (rechoose) {
     undoRechoose();
+    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; }
+    current.reselecting = false;
   } else {
     completedCount++;
   }
@@ -223,7 +250,7 @@ function chooseOption(idx) {
   let total = !current.legend.facetIds.length
     ? rawExposure
     : ratioCost(rawExposure, missionMaxExposure(s, current.legend), remainingBefore, sliver);
-  if (current.legend.facetIds.length && spineRow.tier === "grey") {
+  if (current.legend.facetIds.length && spineRow.tier === "clean") {
     if (isMediumFacet || spent + total >= POOL_SIZE) total = 0;
   }
 
@@ -232,23 +259,19 @@ function chooseOption(idx) {
   current.rawExposure = rawExposure;
   current.total = total;
 
-  spent += total;
-  retired = spent >= POOL_SIZE;
-  const clean = current.legend.facetIds.length ? spineRow.tier === "grey" : total === 0;
-  const regenJustFired = applyCleanStreak(clean);
-
-  history.push({
+  const clean = current.legend.facetIds.length ? spineRow.tier === "clean" : total === 0;
+  const streakClean = guardianReselect ? false : clean;
+  const msTaken = current.startedAt != null ? Date.now() - current.startedAt : 0;
+  const regenJustFired = commitChoice(total, streakClean, false, {
     id: s.id,
     cover: (COVERS[current.legend.spineId] || FACETS[current.legend.spineId]).name,
-    choice: s.options[idx] + (rechoose ? " (dev re-selection)" : "") + (timedOut ? " (timed out)" : ""),
+    optIdx: idx,
+    optText: s.options[idx],
+    answerChanged: guardianReselect,
+    msTaken,
     rows,
     total,
-    poolAfter: Math.min(spent, POOL_SIZE),
-    regenApplied: regenJustFired,
-    timedOut,
   });
-  history[history.length - 1].score = computeScore();
-  if (retired) recordRunEnd("blown");
 
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const lifeWord = total === 1 ? "life" : "lives";
@@ -259,24 +282,27 @@ function chooseOption(idx) {
     (retired && guardianOn ? " That uses your last life. Change this answer to save the cover, or end the run." : "")
   );
 
-  afterChoiceRender();
+  afterChoiceRender(guardianReselect);
 }
 
-function goBack() {
-  if (!current || current.chosen === null) return;
-  if (retired && runRecorded) {
-    const stats = loadStats();
-    const undone = stats.runs.pop();
-    if (undone) {
-      stats.aggregates.totalRuns = Math.max(0, (stats.aggregates.totalRuns || 0) - 1);
-      stats.aggregates.totalMissions = Math.max(0, (stats.aggregates.totalMissions || 0) - (undone.missions || 0));
-      saveStats(stats);
-    }
-    runRecorded = false;
+function undoRecordedRun() {
+  if (!runRecorded) return;
+  const stats = loadStats();
+  const undone = stats.runs.pop();
+  if (undone) {
+    stats.aggregates.totalRuns = Math.max(0, (stats.aggregates.totalRuns || 0) - 1);
+    stats.aggregates.totalMissions = Math.max(0, (stats.aggregates.totalMissions || 0) - (undone.missions || 0));
+    saveStats(stats);
   }
+  runRecorded = false;
+}
+
+function goBack(breakStreak) {
+  if (!current || current.chosen === null) return;
+  if (retired) undoRecordedRun();
   spent -= current.total;
   if (current.regenApplied) spent += REGEN_LIVES;
-  cleanStreak = current.streakBefore || 0;
+  cleanStreak = breakStreak ? 0 : (current.streakBefore || 0);
   regenFired = false;
   retired = false;
   completedCount--;
@@ -293,20 +319,31 @@ function goBack() {
   renderRecords();
 }
 
+function startReselect() {
+  const guardianOn = document.getElementById("guardianToggle").checked;
+  if (!current || current.chosen === null || !guardianOn) return;
+  if (retired) undoRecordedRun();
+  current.reselecting = true;
+  announce("Choose a different answer. Your streak will reset.");
+  renderMission();
+  renderDevPanel();
+  renderRecords();
+}
+
 function hintEligible() {
   if (!HINTS_ENABLED) return false;
-  if (!current || current.chosen !== null) return false;
+  if (!current || current.chosen !== null || current.timedOut) return false;
   const s = current.scenario;
   if (s.mode === "whodunnit") return false;
   if (s.pi || s.morse) return false;
   return true;
 }
 
-function findGreyOptionIndex(scenario, legend) {
+function findCleanOptionIndex(scenario, legend) {
   for (let i = 0; i < scenario.options.length; i++) {
     const rows = computeRows(scenario, legend, i);
     const spineRow = rows.find(r => r.rowId === legend.spineId);
-    if (spineRow && spineRow.tier === "grey") return i;
+    if (spineRow && spineRow.tier === "clean") return i;
   }
   return -1;
 }
@@ -314,7 +351,7 @@ function findGreyOptionIndex(scenario, legend) {
 function useHint() {
   if (hintsLeft <= 0 || !hintEligible()) return;
   const s = current.scenario;
-  const idx = findGreyOptionIndex(s, current.legend);
+  const idx = findCleanOptionIndex(s, current.legend);
   if (idx === -1) return;
   hintsLeft--;
   let text = `your cover reads cleanest on option ${idx + 1}: "${s.options[idx]}".`;
@@ -328,24 +365,47 @@ function useHint() {
 }
 
 const CHALLENGE_TICK_MS = 1000;
+const CHALLENGE_DEFAULT_SECS = 30;
 
 function challengeEnabled() {
   const el = document.getElementById("challengeToggle");
   return !!(el && el.checked);
 }
 
-function challengeDurationMs() {
-  return 60000;
+function challengeDurationMs(scenario) {
+  if (!scenario || scenario.morse || scenario.pi) return null;
+  const el = document.getElementById("challengeDurationSelect");
+  const base = (el ? parseInt(el.value, 10) : CHALLENGE_DEFAULT_SECS) * 1000;
+  return scenario.mode === "whodunnit" ? base * 3 : base;
+}
+
+function challengeCountingDown() {
+  return challengeEnabled() && !!current && current.chosen === null && !current.timedOut
+    && current.challengeMsLeft != null && !isFinalised() && !trainingComplete && !pendingEgg;
 }
 
 function challengeTimeout() {
   if (!current || current.chosen !== null || current.timedOut) return;
   current.timedOut = true;
-  renderChallengeTimer();
+  const s = current.scenario;
+  commitChoice(1, false, true, {
+    id: s.id,
+    cover: (COVERS[current.legend.spineId] || FACETS[current.legend.spineId]).name,
+    optText: "no answer",
+    msTaken: challengeDurationMs(s),
+    rows: [],
+    total: 1,
+  });
+  const remaining = Math.max(POOL_SIZE - spent, 0);
+  announce(
+    `Time ran out. Cover exposed, 1 life lost. ${remaining} of ${POOL_SIZE} lives remaining.` +
+    (retired ? " That was your last life." : "")
+  );
+  afterChoiceRender(false);
 }
 
 function challengeTick() {
-  if (!challengeEnabled() || !current || current.chosen !== null || current.challengeMsLeft == null || current.timedOut) return;
+  if (!challengeCountingDown()) return;
   current.challengeMsLeft -= CHALLENGE_TICK_MS;
   if (current.challengeMsLeft <= 0) {
     current.challengeMsLeft = 0;
@@ -353,6 +413,11 @@ function challengeTick() {
     return;
   }
   renderChallengeTimer();
+}
+
+function gameTick() {
+  challengeTick();
+  renderRunClock();
 }
 
 function xfnv1a(str) {
@@ -403,8 +468,8 @@ function shuffleOptions(scenario, legend) {
   let options = scenario.options;
   let grid = legend.grid || scenario.grid;
   if (options.length > 4) {
-    const greyIdx = grid[legend.spineId].indexOf("grey");
-    const droppable = options.map((_, i) => i).filter(i => i !== greyIdx);
+    const cleanIdx = grid[legend.spineId].indexOf("clean");
+    const droppable = options.map((_, i) => i).filter(i => i !== cleanIdx);
     const dropIdx = droppable[rollInt(droppable.length)];
     const keepIdx = options.map((_, i) => i).filter(i => i !== dropIdx);
     options = keepIdx.map(i => options[i]);
@@ -435,8 +500,8 @@ function castFairGrid(nSus, nScenes, allowedImposters) {
   for (let si = 0; si < nSus; si++) {
     const row = [];
     for (let sc = 0; sc < nScenes; sc++) {
-      if (si === imposter) row.push(sc === holdScene ? "grey" : "crack");
-      else row.push(herringByScene[sc] === si ? "hairline" : "grey");
+      if (si === imposter) row.push(sc === holdScene ? "clean" : "crack");
+      else row.push(herringByScene[sc] === si ? "hairline" : "clean");
     }
     tiers.push(row);
   }
@@ -452,8 +517,8 @@ function assertFairCast(cast, scenario) {
   const nScenes = scenario.beatPrompts.length;
   const warn = m => console.warn(`[fairness] ${scenario.id || scenario.name || "mission"}: ${m}`);
   for (let sc = 0; sc < nScenes; sc++) {
-    const nonGrey = cast.tiers.map((t, si) => (t[sc] !== "grey" ? si : -1)).filter(i => i >= 0);
-    if (nonGrey.length === 1 && nonGrey[0] === cast.imposter) warn(`scene ${sc} singles out the imposter`);
+    const nonClean = cast.tiers.map((t, si) => (t[sc] !== "clean" ? si : -1)).filter(i => i >= 0);
+    if (nonClean.length === 1 && nonClean[0] === cast.imposter) warn(`scene ${sc} singles out the imposter`);
     const herrings = cast.tiers.filter((t, si) => si !== cast.imposter && t[sc] === "hairline").length;
     if (herrings !== 1) warn(`scene ${sc} has ${herrings} herrings (expected 1)`);
   }
@@ -481,7 +546,7 @@ function buildCasting(scenario) {
 }
 
 function returnToSkipped() {
-  if (!skippedStack.length || retired) return;
+  if (!skippedStack.length || retired || (current && current.timedOut)) return;
   if (current && current.chosen === null) {
     const arr = usedLegends[current.scenario.id];
     if (arr) arr.pop();
@@ -493,6 +558,7 @@ function returnToSkipped() {
   pendingEgg = null;
   skippedCount--;
   current = skippedStack.pop();
+  current.startedAt = Date.now();
   announce(`Returned to the skipped mission. ${current.scenario.dispatch}`);
   renderMission();
   renderDevPanel();
@@ -533,7 +599,7 @@ function pickArchetypeVariant(scenario) {
 
 function startScenario(rawScenario, avoidCoverId) {
   briefShown = true;
-  if (current && current.chosen === null) {
+  if (current && current.chosen === null && !current.timedOut) {
     skippedCount++;
     skippedStack.push(current);
   }
@@ -542,8 +608,9 @@ function startScenario(rawScenario, avoidCoverId) {
     : rawScenario;
   const legend = pickLegend(scenario, avoidCoverId);
   if (scenario.mode !== "whodunnit") scenario = shuffleOptions(scenario, legend);
-  current = { scenario, legend, chosen: null, rows: null, total: 0, morseRevealed: false, timedOut: false, challengeMsLeft: challengeDurationMs(), hintMessage: null };
-  lastScenarioId = scenario.id;
+  current = { scenario, legend, chosen: null, rows: null, total: 0, morseRevealed: false, timedOut: false, challengeMsLeft: challengeDurationMs(scenario), startedAt: Date.now(), hintMessage: null };
+  recentScenarios.push(scenario.id);
+  if (recentScenarios.length > REPEAT_WINDOW) recentScenarios.shift();
   lastCoverId = current.legend.spineId;
   lastMode = scenario.mode;
   if (scenario.mode === "whodunnit") {
@@ -576,21 +643,30 @@ function startScenario(rawScenario, avoidCoverId) {
   }
 }
 
+let scoreCacheSig = null, scoreCacheVal = 0;
 function computeScore() {
+  const readBonus = history.reduce((a, h) => a + (h.readEarned || 0), 0);
+  const sig = spent + "/" + completedCount + "/" + skippedCount + "/" + readBonus;
+  if (sig === scoreCacheSig) return scoreCacheVal;
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const base = completedCount * 100 - skippedCount * 25;
   const multiplier = 1 + remaining / POOL_SIZE;
-  const readBonus = history.reduce((a, h) => a + (h.readEarned || 0), 0);
-  return Math.max(0, Math.round(base * multiplier)) + readBonus;
+  scoreCacheVal = Math.max(0, Math.round(base * multiplier)) + readBonus;
+  scoreCacheSig = sig;
+  return scoreCacheVal;
 }
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
+let ratioCacheSig = null, ratioCacheVal = 0;
 function computeRatio() {
+  const sig = spent + "/" + completedCount + "/" + skippedCount;
+  if (sig === ratioCacheSig) return ratioCacheVal;
   const avgExposure = spent / Math.max(completedCount, 1);
   const accuracy  = clamp01(1 - avgExposure / 4);
   const endurance = clamp01(completedCount / 8);
-  const skipDrag  = clamp01(1 - skippedCount / 8);
-  return accuracy * (0.5 + 0.5 * endurance) * skipDrag;
+  ratioCacheVal = accuracy * (0.5 + 0.5 * endurance);
+  ratioCacheSig = sig;
+  return ratioCacheVal;
 }
 
 function rankFromRatio(ratio, t) {
@@ -603,9 +679,16 @@ function rankFromRatio(ratio, t) {
 }
 
 const RANK_THRESHOLDS = { masterSpy: 0.90, seniorOperative: 0.80, operative: 0.70, fieldAgent: 0.60, trainee: 0.50 };
+const RANK_ORDER = ["Recruit", "Trainee", "Field Agent", "Operative", "Senior Operative", "Master Spy"];
+const RANK_MISSION_FLOOR = { "Trainee": 2, "Field Agent": 5, "Operative": 9, "Senior Operative": 14, "Master Spy": 20 };
+function clampRankByMissions(rank, completed) {
+  let idx = RANK_ORDER.indexOf(rank);
+  while (idx > 0 && completed < (RANK_MISSION_FLOOR[RANK_ORDER[idx]] || 0)) idx--;
+  return RANK_ORDER[idx];
+}
 function computeRank() {
   if (completedCount === 0) return "Recruit";
-  return rankFromRatio(computeRatio(), RANK_THRESHOLDS);
+  return clampRankByMissions(rankFromRatio(computeRatio(), RANK_THRESHOLDS), completedCount);
 }
 
 const GATE_THRESHOLD_PRESETS = {
@@ -617,25 +700,13 @@ const GATE_THRESHOLD_PRESETS = {
 function computeGateRank() {
   if (completedCount === 0) return "Recruit";
   const table = GATE_THRESHOLD_PRESETS[currentPreset] || RANK_THRESHOLDS;
-  return rankFromRatio(computeRatio(), table);
+  return clampRankByMissions(rankFromRatio(computeRatio(), table), completedCount);
 }
 
-const RANK_ORDER = ["Recruit", "Trainee", "Field Agent", "Operative", "Senior Operative", "Master Spy"];
 function rankAtLeast(minRank) {
   return RANK_ORDER.indexOf(computeGateRank()) >= RANK_ORDER.indexOf(minRank);
 }
 
-const RANK_FLAVOR = {
-  "Master Spy": "Lives to spare, no wasted motion. Command's taking notice.",
-  "Senior Operative": "Strong finish. Cover barely creaked.",
-  "Operative": "You spent your share of lives, but you're qualified.",
-  "Field Agent": "Close to the wire. Lives ran thin, but you made it out.",
-  "Trainee": "You crossed the line running on fumes.",
-  "Recruit": "You crossed the line, barely. More training ahead.",
-};
-
-const SKIP_ALL_FLAVOR = "You skipped every mission. Can't read a cover you never wear; nothing to grade here.";
-const SKIP_HEAVY_FLAVOR = "You skipped more than you played. Hard to judge a cover you barely wore.";
 function rankFlavorLine() {
   if (completedCount === 0) return SKIP_ALL_FLAVOR;
   if (skippedCount > completedCount) return SKIP_HEAVY_FLAVOR;
@@ -662,7 +733,18 @@ function tierGateCheck(scenario) {
   return bypassTierGate || rankAtLeast(requiredRank);
 }
 
+function recencySafePool(cands) {
+  if (cands.length <= 1) return cands;
+  for (let w = Math.min(recentScenarios.length, REPEAT_WINDOW); w > 0; w--) {
+    const recent = new Set(recentScenarios.slice(-w));
+    const filtered = cands.filter(s => !recent.has(s.id));
+    if (filtered.length) return filtered;
+  }
+  return cands;
+}
+
 function newMission() {
+  if (!runTimerStarted) { runStartedAt = Date.now(); runTimerStarted = true; }
   coverAnchored = false;
   if (retired) {
     if (current) { current = null; announce(poolStatusLine()); renderMission(); renderDevPanel(); }
@@ -725,7 +807,7 @@ function newMission() {
     const easy = candidates.filter(s => s.mode === "full5");
     if (easy.length) candidates = easy;
   }
-  const scenarioPool = candidates.length > 1 ? candidates.filter(s => s.id !== lastScenarioId) : candidates;
+  const scenarioPool = recencySafePool(candidates);
   const coverSafePool = lastCoverId
     ? scenarioPool.filter(s => availableSpines(s).some(opt => optionSpineId(s, opt) !== lastCoverId))
     : scenarioPool;
@@ -737,6 +819,15 @@ function newMission() {
 const STATS_KEY = "kuri-stats";
 const STATS_RUN_CAP = 50;
 let runRecorded = false;
+
+const REMOTE_SUBMIT_ENABLED = false;
+function submitRunRemote(run) {
+  if (!REMOTE_SUBMIT_ENABLED) return;
+}
+
+function newRunId() {
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+}
 
 function freshStats() {
   return { v: 1, runs: [], aggregates: { totalRuns: 0, totalMissions: 0, bestScore: 0, bestRank: null }, unlocked: [] };
@@ -750,6 +841,13 @@ function loadStats() {
     if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.runs)) return freshStats();
     if (!parsed.aggregates) parsed.aggregates = freshStats().aggregates;
     if (!Array.isArray(parsed.unlocked)) parsed.unlocked = [];
+    parsed.runs.forEach(r => {
+      if (r.challenge === undefined) r.challenge = false;
+      if (r.timeouts === undefined) r.timeouts = 0;
+      if (r.runMs === undefined) r.runMs = 0;
+      if (r.guardianSaves === undefined) r.guardianSaves = 0;
+      if (r.streakResets === undefined) r.streakResets = 0;
+    });
     return parsed;
   } catch (e) {
     return freshStats();
@@ -765,7 +863,7 @@ function rankMeets(rank, minRank) {
   return RANK_ORDER.indexOf(rank) >= RANK_ORDER.indexOf(minRank);
 }
 
-const ACHIEVEMENTS_ENABLED = false;
+const ACHIEVEMENTS_ENABLED = true;
 const RECORDS_ENABLED = false;
 const ACHIEVEMENTS = [
   { id: "first_complete", name: "First Run", desc: "complete a training run without getting caught.",
@@ -805,7 +903,7 @@ function evaluateAchievements() {
   });
   if (newlyUnlocked.length) {
     saveStats(stats);
-    announce("Achievement unlocked: " + newlyUnlocked.map(a => a.name).join(", "));
+    if (RECORDS_ENABLED) announce("Achievement unlocked: " + newlyUnlocked.map(a => a.name).join(", "));
   }
   return newlyUnlocked;
 }
@@ -821,6 +919,7 @@ function recordRunEnd(outcome) {
   runRecorded = true;
   const stats = loadStats();
   const run = {
+    id: newRunId(),
     ended: Date.now(),
     outcome,
     missions: completedCount,
@@ -831,6 +930,11 @@ function recordRunEnd(outcome) {
     preset: currentPreset,
     cleanMissions: history.filter(h => h.total === 0).length,
     cracks: history.filter(h => h.total >= 2).length,
+    challenge: challengeEnabled(),
+    timeouts: history.filter(h => h.timedOut).length,
+    runMs: elapsedMs(),
+    guardianSaves,
+    streakResets: guardianStreakResets,
   };
   stats.runs.push(run);
   if (stats.runs.length > STATS_RUN_CAP) stats.runs = stats.runs.slice(stats.runs.length - STATS_RUN_CAP);
@@ -839,6 +943,7 @@ function recordRunEnd(outcome) {
   stats.aggregates.bestScore = Math.max(stats.aggregates.bestScore || 0, run.score);
   stats.aggregates.bestRank = betterRank(stats.aggregates.bestRank, run.rank);
   saveStats(stats);
+  submitRunRemote(run);
   evaluateAchievements();
 }
 
@@ -853,6 +958,7 @@ function resetPool() {
   skippedCount = 0;
   skippedStack = [];
   guardianSaves = 0;
+  guardianStreakResets = 0;
   hintsLeft = HINTS_PER_RUN;
   usedLegends = {};
   usedArchetypes = {};
@@ -860,8 +966,9 @@ function resetPool() {
   pendingEgg = null;
   trainingComplete = false;
   runRecorded = false;
-  runStartedAt = Date.now();
-  lastScenarioId = null;
+  runStartedAt = null;
+  runTimerStarted = false;
+  recentScenarios = [];
   lastCoverId = null;
   lastMode = null;
   briefShown = true;

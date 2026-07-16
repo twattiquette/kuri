@@ -3,7 +3,7 @@ function renderDevPanel() {
   let poolHtml = `<p class="dev-version">Version ${VERSION}</p>`;
   poolHtml += `<p class="dev-version">` +
     `<label class="dev-toggle">id <input type="text" id="devMissionIdInput" size="5"></label>` +
-    `<br><label class="dev-toggle"><input type="checkbox" id="tierGateToggle" ${bypassTierGate ? "checked" : ""}> unlock all levels</label>` +
+    `<br><label class="dev-toggle"><input type="checkbox" id="tierGateToggle" data-change="tier-gate" ${bypassTierGate ? "checked" : ""}> unlock all levels</label>` +
     `</p>`;
 
   let curHtml = "";
@@ -35,8 +35,8 @@ function renderDevPanel() {
       current.rows.forEach(r => {
         const isFacetRow = r.rowId !== current.legend.spineId;
         const label = isFacetRow
-          ? (r.tier === "grey" ? "drift" : r.tier === "crack" ? "no drift" : r.tier)
-          : (r.tier === "grey" ? "held" : r.tier);
+          ? (r.tier === "clean" ? "drift" : r.tier === "crack" ? "no drift" : r.tier)
+          : (r.tier === "clean" ? "held" : r.tier);
         curHtml += `<tr><td>${r.name}</td><td>×${r.weight}</td><td>${label}</td><td>${r.exposure}</td></tr>`;
       });
       if (ratio) {
@@ -51,30 +51,35 @@ function renderDevPanel() {
   }
 
   panel.innerHTML = poolHtml + curHtml;
-  const tierGateToggle = document.getElementById("tierGateToggle");
-  if (tierGateToggle) tierGateToggle.addEventListener("change", (e) => { bypassTierGate = e.target.checked; });
-  const EGG_BUILDERS = { EPI1: buildEggPi1, EMC1: buildEggMorse1, EMC2: buildEggMorse2, EMC3: buildEggMorse3 };
-  const devMissionIdInput = document.getElementById("devMissionIdInput");
-  if (devMissionIdInput) devMissionIdInput.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
-    const id = devMissionIdInput.value.trim();
-    if (!id) return;
-    const eggId = Object.keys(EGG_BUILDERS).find(k => k.toLowerCase() === id.toLowerCase());
-    if (eggId) { startScenario(EGG_BUILDERS[eggId]()); return; }
-    const scenario = SCENARIOS.find(s => s.id.toLowerCase() === id.toLowerCase());
-    if (!scenario) { announce(`Mission ID not found: ${id}`); return; }
-    delete usedLegends[scenario.id];
-    startScenario(scenario);
-  });
-
   const debugLogOutput = document.getElementById("debugLogOutput");
   if (debugLogOutput) debugLogOutput.value = buildDebugLogMarkdown();
 }
 
+function truncPreview(text, n) {
+  const max = n || 24;
+  const clean = String(text == null ? "" : text).trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > max - 12 ? cut.slice(0, sp) : cut).replace(/\s+$/, "") + "…";
+}
+
+function fmtRunDuration(ms) {
+  const total = Math.round((ms || 0) / 1000);
+  return `${Math.floor(total / 60)}m ${total % 60}s`;
+}
+
 function debugHistoryLine(h) {
   const tiers = h.rows && h.rows.length ? h.rows.map(r => `${r.name}=${r.tier}`).join(", ") : "";
-  const flags = [h.regenApplied ? "regen" : "", h.timedOut ? "timeout" : ""].filter(Boolean).join(" ");
-  return `${h.id} · ${h.cover} · "${h.choice}"` +
+  const flags = [
+    h.regenApplied ? "regen" : "",
+    h.timedOut ? "timeout" : "",
+    h.answerChanged ? "changed" : "",
+    h.correct === true ? "hit" : (h.correct === false ? "miss" : ""),
+  ].filter(Boolean).join(" ");
+  const opt = h.optIdx != null ? `opt${h.optIdx + 1} "${truncPreview(h.optText)}"` : `"${truncPreview(h.optText)}"`;
+  const secs = h.msTaken != null ? ` · ${Math.round(h.msTaken / 1000)}s` : "";
+  return `${h.id} · ${h.cover} · ${opt}${secs}` +
     (tiers ? ` · ${tiers}` : "") +
     ` · lives lost ${h.total} · pool ${h.poolAfter}/${POOL_SIZE} · score ${h.score}` +
     (flags ? ` · ${flags}` : "");
@@ -84,11 +89,19 @@ function buildDebugLogMarkdown() {
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const lines = [];
   const unlockedLevels = Object.keys(TIER_RANK_UNLOCK).filter(t => rankAtLeast(TIER_RANK_UNLOCK[t]));
-  lines.push(`kuri ${VERSION} · lives ${remaining}/${POOL_SIZE} · score ${computeScore()} · rank ${retired ? "Burn Notice" : computeRank()} · levels unlocked: ${unlockedLevels.join(", ")}`);
-  lines.push(`missions ${completedCount} completed · ${skippedCount} skipped · guardian saves ${guardianSaves}`);
+  lines.push(`kuri ${VERSION} · lives ${remaining}/${POOL_SIZE} · score ${computeScore()} · rank ${retired ? "Burn Notice" : computeRank()} · unlocked: ${unlockedLevels.join(", ")}`);
+  lines.push(`missions ${completedCount} done · ${skippedCount} skipped · guardian ${guardianSaves} · resets ${guardianStreakResets}`);
   const toggles = ["guardian", "regen", "endless", "challenge"]
-    .map(k => `${k}:${document.getElementById(k + "Toggle").checked ? "on" : "off"}`).join(" ");
-  lines.push(`preset ${currentPreset} · ${toggles}`);
+    .map(k => {
+      const on = document.getElementById(k + "Toggle").checked;
+      if (k === "challenge") {
+        const dur = on && current ? challengeDurationMs(current.scenario) : null;
+        return `challenge:${on ? "on" + (dur ? " " + Math.round(dur / 1000) + "s" : "") : "off"}`;
+      }
+      return `${k}:${on ? "on" : "off"}`;
+    }).join(" ");
+  const timeoutCount = history.filter(h => h.timedOut).length;
+  lines.push(`preset ${currentPreset} · ${toggles} · timeouts ${timeoutCount} · run ${fmtRunDuration(elapsedMs())}`);
   lines.push("");
   if (!history.length) {
     lines.push("no missions completed yet this run");
@@ -175,34 +188,34 @@ function initTheme() {
     theme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
   }
   applyTheme(theme);
-  document.getElementById("themeToggle").addEventListener("click", () => {
-    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
-    applyTheme(next);
-  });
 }
 
 const collapsers = [];
 function initCollapse(toggleId, targetId, noun, opts) {
   opts = opts || {};
-  const toggle = document.getElementById(toggleId);
+  const toggleIds = Array.isArray(toggleId) ? toggleId : [toggleId];
+  const toggles = toggleIds.map(id => document.getElementById(id));
   const target = document.getElementById(targetId);
   let shown = !opts.startHidden;
   function apply() {
     target.classList.toggle("hidden", !shown);
-    toggle.setAttribute("aria-expanded", shown ? "true" : "false");
-    if (!opts.staticLabel) {
-      const caret = shown ? "▾" : "▸";
-      toggle.innerHTML = '<span class="caret" aria-hidden="true">' + caret + "</span>" +
-        (shown ? "Hide " : "Show ") + noun;
-    }
+    toggles.forEach(toggle => {
+      toggle.setAttribute("aria-expanded", shown ? "true" : "false");
+      if (!opts.staticLabel) {
+        const caret = shown ? "▾" : "▸";
+        toggle.innerHTML = '<span class="caret" aria-hidden="true">' + caret + "</span>" +
+          (shown ? "Hide " : "Show ") + noun;
+      }
+    });
   }
   apply();
-  toggle.addEventListener("click", () => {
-    shown = !shown;
-    apply();
+  toggles.forEach(toggle => {
+    toggle.addEventListener("click", () => {
+      shown = !shown;
+      apply();
+    });
   });
-  collapsers.push(() => { shown = !opts.startHidden; apply(); });
+  if (!opts.persist) collapsers.push(() => { shown = !opts.startHidden; apply(); });
 }
 
 function resetCollapsers() {
@@ -227,6 +240,19 @@ function refreshToggleIcons() {
   });
 }
 
+function syncChallengeLock() {
+  const input = document.getElementById("challengeToggle");
+  if (!input) return;
+  input.disabled = runTimerStarted;
+  input.closest(".icon-toggle").classList.toggle("locked", runTimerStarted);
+  const sel = document.getElementById("challengeDurationSelect");
+  if (sel) {
+    sel.disabled = runTimerStarted || !input.checked;
+    sel.classList.toggle("cm-off", !input.checked);
+    sel.classList.toggle("locked", runTimerStarted);
+  }
+}
+
 function setPresetLabel(name) {
   currentPreset = name;
   document.getElementById("difficultyCycle").textContent = name;
@@ -239,9 +265,14 @@ function applyDifficultyPreset(name) {
     const input = document.getElementById(key + "Toggle");
     if (input.checked !== preset[key]) {
       input.checked = preset[key];
-      input.dispatchEvent(new Event("change"));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
     }
   });
+  const cm = document.getElementById("challengeToggle");
+  if (cm.checked && !cm.disabled) {
+    cm.checked = false;
+    cm.dispatchEvent(new Event("change", { bubbles: true }));
+  }
   applyingPreset = false;
   setPresetLabel(name);
   refreshToggleIcons();
@@ -263,108 +294,175 @@ function checkPresetStillMatches() {
 function initDifficulty() {
   document.getElementById("difficultyCycle").textContent = currentPreset;
   refreshToggleIcons();
-  document.getElementById("difficultyCycle").addEventListener("click", () => {
-    const idx = currentPreset === "custom" ? -1 : DIFFICULTY_ORDER.indexOf(currentPreset);
-    applyDifficultyPreset(DIFFICULTY_ORDER[(idx + 1) % DIFFICULTY_ORDER.length]);
-  });
-  ["guardianToggle", "regenToggle", "challengeToggle", "endlessToggle", "dyslexiaToggle"].forEach((id) => {
-    document.getElementById(id).addEventListener("change", () => {
+}
+
+const EGG_BUILDERS = { EPI1: buildEggPi1, EMC1: buildEggMorse1, EMC2: buildEggMorse2, EMC3: buildEggMorse3 };
+
+function onDelegatedClick(e) {
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  switch (el.dataset.action) {
+    case "choose": chooseOption(parseInt(el.dataset.idx, 10)); break;
+    case "accuse": accuse(parseInt(el.dataset.idx, 10)); break;
+    case "read": readBeat(parseInt(el.dataset.beat, 10), el.dataset.call); break;
+    case "hint": useHint(); break;
+    case "brief-toggle": briefShown = !briefShown; renderMission(); break;
+    case "morse-toggle": current.morseRevealed = !current.morseRevealed; renderMission(); break;
+    case "morse-play":
+      toggleMorseAudio(current.scenario.situation);
+      el.innerHTML = morsePlayHtml(current.scenario.situation);
+      break;
+    case "morse-restart": {
+      restartMorseAudio(current.scenario.situation);
+      const mp = document.getElementById("morsePlay");
+      if (mp) mp.innerHTML = morsePlayHtml(current.scenario.situation);
+      break;
+    }
+    case "next-mission": newMission(); break;
+    case "reset-pool": resetPool(); break;
+    case "return-skipped": returnToSkipped(); break;
+    case "reselect": startReselect(); break;
+    case "save-report": saveReport(el.dataset.outcome); break;
+    case "theme-toggle": {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      try { localStorage.setItem(THEME_KEY, next); } catch (err) {}
+      applyTheme(next);
+      break;
+    }
+    case "difficulty-cycle": {
+      const idx = currentPreset === "custom" ? -1 : DIFFICULTY_ORDER.indexOf(currentPreset);
+      applyDifficultyPreset(DIFFICULTY_ORDER[(idx + 1) % DIFFICULTY_ORDER.length]);
+      break;
+    }
+    case "ipa-play": {
+      if (!window.speechSynthesis) break;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance("curi");
+      utter.lang = "en-AU";
+      window.speechSynthesis.speak(utter);
+      break;
+    }
+  }
+}
+
+function onDelegatedChange(e) {
+  const el = e.target;
+  switch (el.dataset.change) {
+    case "guardian":
+      renderMission();
       refreshToggleIcons();
       checkPresetStillMatches();
-    });
-  });
+      break;
+    case "regen":
+    case "endless":
+      refreshToggleIcons();
+      checkPresetStillMatches();
+      break;
+    case "challenge":
+      renderChallengeTimer();
+      renderTally();
+      syncChallengeLock();
+      refreshToggleIcons();
+      checkPresetStillMatches();
+      break;
+    case "dyslexia":
+      document.documentElement.dataset.dyslexia = el.checked ? "on" : "off";
+      refreshToggleIcons();
+      checkPresetStillMatches();
+      break;
+    case "dev":
+      document.getElementById("devPanel").classList.toggle("hidden", !el.checked);
+      renderMission();
+      renderDevPanel();
+      break;
+    case "tier-gate":
+      bypassTierGate = el.checked;
+      break;
+  }
+}
+
+function onMissionIdKeydown(e) {
+  if (e.target.id !== "devMissionIdInput" || e.key !== "Enter") return;
+  const id = e.target.value.trim();
+  if (!id) return;
+  const eggId = Object.keys(EGG_BUILDERS).find(k => k.toLowerCase() === id.toLowerCase());
+  if (eggId) { startScenario(EGG_BUILDERS[eggId]()); return; }
+  const scenario = SCENARIOS.find(s => s.id.toLowerCase() === id.toLowerCase());
+  if (!scenario) { announce(`Mission ID not found: ${id}`); return; }
+  delete usedLegends[scenario.id];
+  startScenario(scenario);
+}
+
+function onGameKeydown(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "select" || tag === "textarea") return;
+  if (!current) return;
+  const n = parseInt(e.key, 10);
+  const missionArea = document.getElementById("missionArea");
+  const digitShortcutsAllowed = document.activeElement === document.body || (missionArea && missionArea.contains(document.activeElement));
+  if (e.key === "0") {
+    const card = document.getElementById("coverCard");
+    if (card && digitShortcutsAllowed) {
+      e.preventDefault();
+      if (coverAnchored) {
+        const back = coverAnchorReturn && document.contains(coverAnchorReturn) ? coverAnchorReturn : document.querySelector(".opt-btn:not([disabled])");
+        if (back) back.scrollIntoView({ block: "nearest" });
+        coverAnchored = false;
+      } else {
+        coverAnchorReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+        card.scrollIntoView({ block: "start" });
+        coverAnchored = true;
+      }
+    }
+    return;
+  }
+  const isWhodunnit = current.scenario.mode === "whodunnit";
+  const items = isWhodunnit ? current.scenario.suspects : current.scenario.options;
+  const selectFn = isWhodunnit ? accuse : chooseOption;
+  if (!Number.isNaN(n) && n >= 1 && n <= items.length && digitShortcutsAllowed) {
+    e.preventDefault();
+    selectFn(n - 1);
+    return;
+  }
+  if (e.key === "ArrowRight") {
+    e.preventDefault();
+    newMission();
+  } else if (e.key === "ArrowLeft") {
+    if (((current.chosen === null && !current.timedOut) || pendingEgg) && skippedStack.length) {
+      e.preventDefault();
+      returnToSkipped();
+    } else if (current.chosen !== null && !pendingEgg) {
+      const guardianOn = document.getElementById("guardianToggle").checked;
+      if (guardianOn && !retired && !current.reselecting) {
+        e.preventDefault();
+        startReselect();
+      }
+    }
+  }
+}
+
+function initEventDelegation() {
+  document.addEventListener("click", onDelegatedClick);
+  document.addEventListener("change", onDelegatedChange);
+  document.addEventListener("keydown", onGameKeydown);
+  document.addEventListener("keydown", onMissionIdKeydown);
 }
 
 function init() {
-  document.getElementById("newMission").addEventListener("click", newMission);
-  document.getElementById("resetPool").addEventListener("click", resetPool);
   initCollapse("blurbToggle", "blurb", "intro");
   initCollapse("footerToggle", "footer", "footer");
   if (RECORDS_ENABLED) {
-    initCollapse("recordsToggle", "recordsPanel", "records", { startHidden: true });
+    initCollapse(["recordsToggleStats", "recordsToggleDev"], "recordsPanel", "records", { startHidden: true });
   } else {
-    document.getElementById("recordsToggle").classList.add("hidden");
+    document.getElementById("recordsToggleStats").classList.add("hidden");
+    document.getElementById("recordsToggleDev").classList.add("hidden");
     document.getElementById("recordsPanel").classList.add("hidden");
   }
-  document.getElementById("ipaPlay").addEventListener("click", () => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance("curi");
-    utter.lang = "en-AU";
-    window.speechSynthesis.speak(utter);
-  });
-  initCollapse("modeSettingsToggle", "modeSettingsPanel", "", { startHidden: true, staticLabel: true });
-  document.getElementById("devToggle").addEventListener("change", (e) => {
-    document.getElementById("devPanel").classList.toggle("hidden", !e.target.checked);
-    bypassTierGate = e.target.checked;
-    renderMission();
-    renderDevPanel();
-  });
-  document.getElementById("guardianToggle").addEventListener("change", renderMission);
-  document.getElementById("dyslexiaToggle").addEventListener("change", (e) => {
-    document.documentElement.dataset.dyslexia = e.target.checked ? "on" : "off";
-  });
-  document.getElementById("challengeToggle").addEventListener("change", renderChallengeTimer);
-  setInterval(challengeTick, CHALLENGE_TICK_MS);
+  initCollapse("modeSettingsToggle", "modeSettingsPanel", "", { startHidden: true, staticLabel: true, persist: true });
+  setInterval(gameTick, CHALLENGE_TICK_MS);
   initDifficulty();
-
-  document.addEventListener("keydown", (e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    const tag = (e.target.tagName || "").toLowerCase();
-    if (tag === "input" || tag === "select" || tag === "textarea") return;
-    if (!current) return;
-    const n = parseInt(e.key, 10);
-    const missionArea = document.getElementById("missionArea");
-    const digitShortcutsAllowed = document.activeElement === document.body || (missionArea && missionArea.contains(document.activeElement));
-    if (e.key === "0") {
-      const card = document.getElementById("coverCard");
-      if (card && digitShortcutsAllowed) {
-        e.preventDefault();
-        if (coverAnchored) {
-          const back = coverAnchorReturn && document.contains(coverAnchorReturn) ? coverAnchorReturn : document.querySelector(".opt-btn:not([disabled])");
-          if (back) back.scrollIntoView({ block: "nearest" });
-          coverAnchored = false;
-        } else {
-          coverAnchorReturn = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
-          card.scrollIntoView({ block: "start" });
-          coverAnchored = true;
-        }
-      }
-      return;
-    }
-    const isWhodunnit = current.scenario.mode === "whodunnit";
-    const items = isWhodunnit ? current.scenario.suspects : current.scenario.options;
-    const selectFn = isWhodunnit ? accuse : chooseOption;
-    if (!Number.isNaN(n) && n >= 1 && n <= items.length && digitShortcutsAllowed) {
-      e.preventDefault();
-      selectFn(n - 1);
-      return;
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      e.preventDefault();
-      const step = e.key === "ArrowDown" ? 1 : -1;
-      const total = items.length;
-      if (current.chosen !== null) {
-        const devMode = document.getElementById("devToggle").checked;
-        const guardianOn = document.getElementById("guardianToggle").checked;
-        if (retired && !guardianOn && !devMode) return;
-        const targetIdx = (current.chosen + step + total) % total;
-        goBack();
-        selectFn(targetIdx);
-      } else {
-        selectFn(step === 1 ? 0 : total - 1);
-      }
-      return;
-    }
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      newMission();
-    } else if (e.key === "ArrowLeft") {
-      if ((current.chosen === null || pendingEgg) && skippedStack.length) {
-        e.preventDefault();
-        returnToSkipped();
-      }
-    }
-  });
+  initEventDelegation();
 
   loadStats();
   initTheme();

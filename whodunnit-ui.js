@@ -6,10 +6,10 @@ function whodunnitEpilogue(scenario, cast) {
   const tags = scenario.sceneTags || scenario.beatPrompts.map((_, i) => `scene ${i + 1}`);
   const crackTags = cast.tiers[cast.imposter]
     .map((t, i) => (t === "crack" ? tags[i] : null)).filter(Boolean);
-  const slips = cast.herringByScene.map((si, sc) => `${S[si].name} slipped on ${tags[sc]} once`);
-  const reveal = `${S[cast.imposter].name} ${scenario.imposterTell}; that's not ${profileName}, ` +
-    `that's ${archName(cast.imposterArchetype)} wearing ${profileName}'s coat. Cover broke on ${listJoin(crackTags)}.`;
-  const herrings = `${listJoin(slips)}; each stood out, but one slip isn't a pattern. A borrowed profile never fits the paw.`;
+  const slips = cast.herringByScene.map((si, sc) => `${S[si].name} drifted on ${tags[sc]} once`);
+  const reveal = `${S[cast.imposter].name} ${scenario.imposterTell}. That isn't ${profileName}; ` +
+    `that's ${archName(cast.imposterArchetype)} wearing ${profileName}'s coat, and the stitching gave on ${listJoin(crackTags)}.`;
+  const herrings = `${listJoin(slips)}, however one tell isn't a pattern. The consistent scene cracks revealed the imposter.`;
   return `${reveal}\n\n${herrings}`;
 }
 
@@ -30,9 +30,8 @@ function renderWhodunnitMission(area) {
   const s = current.scenario;
   if (!current.beatReads) current.beatReads = s.beatPrompts.map(() => []);
   const answered = current.chosen !== null;
-  const devMode = document.getElementById("devToggle").checked;
+  const resolved = answered || current.timedOut;
   const guardianOn = document.getElementById("guardianToggle").checked;
-  const locked = retired && !guardianOn && !devMode;
 
   let html = missionHeader(s);
   html += coverProfileCard(current.legend, "THE PROFILE", "the cover one suspect is falsely claiming to hold");
@@ -42,38 +41,38 @@ function renderWhodunnitMission(area) {
 
   s.beatPrompts.forEach((prompt, i) => {
     html += `<div class="beat"><div class="prompt">${i + 1}. ${prompt}</div>`;
-    const readCall = answered ? current.beatReads[i] : null;
+    const readCall = resolved ? current.beatReads[i] : null;
     s.suspects.forEach((sus, si) => {
       let chip = "";
       let pick = "";
-      if (answered) {
+      if (resolved) {
         const tier = current.cast.tiers[si][i];
-        chip = `<span class="tier-tag tier-${tier}">${TIER_LABEL[tier]}</span>`;
+        chip = `<span class="tier-tag tier-${tier}">${WHO_TIER_LABEL[tier]}</span>`;
         if (readCall && readCall.includes(String(si))) {
-          pick = tier !== "grey"
+          pick = tier !== "clean"
             ? `<span class="read-pick correct">✓</span> `
             : `<span class="read-pick wrong">✗</span> `;
         }
       }
       html += `<div class="suspect-line"><span class="who">${sus.name}:</span> ${chip}${pick}${current.cast.actions[si][i]}</div>`;
     });
-    if (!answered) {
+    if (!resolved) {
       const reads = s.suspects.map((sus, si) => [String(si), sus.name]);
       html += `<div class="read-row" role="group" aria-label="who had a tell, up to 2"><span class="read-label">Who had a tell? (up to 2)</span>`;
       reads.forEach(([val, lbl]) => {
         const picked = current.beatReads[i].includes(val);
         const sel = picked ? " selected" : "";
-        html += `<button class="read-btn${sel}" data-beat="${i}" data-call="${val}" aria-pressed="${picked}">${lbl}</button>`;
+        html += `<button class="read-btn${sel}" data-action="read" data-beat="${i}" data-call="${val}" aria-pressed="${picked}">${lbl}</button>`;
       });
       html += `</div>`;
     } else {
       const missedNames = s.suspects
-        .map((sus, si) => (current.cast.tiers[si][i] !== "grey" && !readCall.includes(String(si)) ? sus.name : null))
+        .map((sus, si) => (current.cast.tiers[si][i] !== "clean" && !readCall.includes(String(si)) ? sus.name : null))
         .filter(Boolean);
       let line;
       if (readCall && readCall.length) {
         const items = readCall.map(c => {
-          const mark = current.cast.tiers[Number(c)][i] !== "grey" ? "✓" : "✗";
+          const mark = current.cast.tiers[Number(c)][i] !== "clean" ? "✓" : "✗";
           return `${s.suspects[Number(c)].name} ${mark}`;
         });
         line = `Your read: ${listJoin(items)}`;
@@ -91,47 +90,35 @@ function renderWhodunnitMission(area) {
   html += `<div class="accuse-row" role="group" aria-label="accuse a suspect">`;
   s.suspects.forEach((sus, si) => {
     const isChosen = current.chosen === si;
-    const sel = isChosen ? " selected" : "";
-    const disabled = answered && !devMode && (!isChosen || locked) ? "disabled" : "";
-    const prefix = isChosen ? "✓ " : `${si + 1}. `;
-    html += `<button class="accuse-btn${sel}" data-idx="${si}" ${disabled}>${prefix}${sus.name}</button>`;
+    const showChosen = isChosen && !current.reselecting;
+    const sel = showChosen ? " selected" : "";
+    const disabled = (missionInteractable() || (isChosen && retired && guardianOn)) ? "" : "disabled";
+    const prefix = showChosen ? "✓ " : `${si + 1}. `;
+    html += `<button class="accuse-btn${sel}" data-action="accuse" data-idx="${si}" ${disabled}>${prefix}${sus.name}</button>`;
   });
   html += `</div>`;
 
-  if (answered) html += renderWhodunnitDebrief();
+  if (current.timedOut) html += renderTimeoutDebrief();
+  else if (answered) html += renderWhodunnitDebrief();
 
-  html += `<div class="status-line"></div>`;
+  html += `<div class="status-row"><div class="status-line"></div>${timerControlsHtml()}</div>`;
   html += `<div class="controls bottom-controls" role="group" aria-label="mission controls">`;
-  if (!answered && skippedStack.length) html += `<button id="returnBtn" class="back-btn">↩ Return to skipped</button>`;
+  if (!resolved && skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
+  else if (answered && guardianOn && !current.reselecting) html += `<button id="changeAnswerBtn" class="back-btn" data-action="reselect">↺ Change answer</button>`;
   html += `<div class="util">`;
-  html += `<button id="nextBtn" class="primary">${answered ? (retired && guardianOn ? "End run" : "Next Mission") : "Skip"} →</button>`;
+  html += `<button id="nextBtn" class="primary" data-action="next-mission"${current.reselecting ? " disabled" : ""}>${resolved ? (retired && guardianOn ? "End run" : "Next Mission") : "Skip"} →</button>`;
   html += `</div></div>`;
-  const leftHint = !answered && skippedStack.length ? `<kbd>←</kbd> return to skipped` : "";
+  const leftHint = !resolved && skippedStack.length ? `<kbd>←</kbd> return to skipped`
+    : (answered && guardianOn && !current.reselecting ? `<kbd>←</kbd> change answer` : "");
   html += `<div class="kbd-hint"><span>${leftHint}</span><span><kbd>0</kbd> cover · <kbd>1</kbd>–<kbd>${s.suspects.length}</kbd> accuse</span><span>skip / next mission <kbd>→</kbd></span></div>`;
 
   area.innerHTML = html;
   setStatus(missionStatusLine());
   renderChallengeTimer();
-
-  const briefToggle = document.getElementById("briefToggle");
-  if (briefToggle) briefToggle.addEventListener("click", () => {
-    briefShown = !briefShown;
-    renderMission();
-  });
-  document.querySelectorAll(".read-btn").forEach(btn => {
-    btn.addEventListener("click", () => readBeat(parseInt(btn.dataset.beat, 10), btn.dataset.call));
-  });
-  document.querySelectorAll(".accuse-btn").forEach(btn => {
-    btn.addEventListener("click", () => accuse(parseInt(btn.dataset.idx, 10)));
-  });
-  const nextBtn = document.getElementById("nextBtn");
-  if (nextBtn) nextBtn.addEventListener("click", newMission);
-  const returnBtn = document.getElementById("returnBtn");
-  if (returnBtn) returnBtn.addEventListener("click", returnToSkipped);
 }
 
 function readBeat(i, call) {
-  if (!current || current.chosen !== null || retired) return;
+  if (!current || current.chosen !== null || current.timedOut || retired) return;
   const picks = current.beatReads[i];
   const at = picks.indexOf(call);
   if (at >= 0) picks.splice(at, 1);
@@ -140,12 +127,10 @@ function readBeat(i, call) {
 }
 
 function accuse(idx) {
-  if (!current) return;
+  if (!current || current.timedOut) return;
   const guardianOn = document.getElementById("guardianToggle").checked;
   const rechoose = current.chosen !== null;
   if (rechoose && !handleRechooseGuard(idx)) return;
-  const timedOut = !rechoose && !!current.timedOut;
-  current.timedOut = false;
   const s = current.scenario;
   const liarIdx = current.cast.imposter;
   const correct = idx === liarIdx;
@@ -163,8 +148,11 @@ function accuse(idx) {
     }
   });
 
+  const guardianReselect = rechoose && guardianOn && current.reselecting;
   if (rechoose) {
     undoRechoose();
+    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; }
+    current.reselecting = false;
   } else {
     completedCount++;
   }
@@ -173,25 +161,23 @@ function accuse(idx) {
   current.total = total;
   current.rows = [];
   current.readEarned = earned;
-  spent += total;
-  retired = spent >= POOL_SIZE;
-  const regenJustFired = applyCleanStreak(correct);
 
-  history.push({
+  const streakClean = guardianReselect ? false : correct;
+  const msTaken = current.startedAt != null ? Date.now() - current.startedAt : 0;
+  const regenJustFired = commitChoice(total, streakClean, false, {
     id: s.id,
     cover: COVERS[current.legend.spineId].name,
-    choice: `Accused ${s.suspects[idx].name}` + (correct ? " (correct)" : " (wrong)") + (rechoose ? " (dev re-selection)" : "") + (timedOut ? " (timed out)" : ""),
+    optIdx: idx,
+    optText: s.suspects[idx].name,
+    correct,
+    answerChanged: guardianReselect,
+    msTaken,
     rows: [],
     total,
     readEarned: earned,
     sceneReadable,
     sceneCaught,
-    poolAfter: Math.min(spent, POOL_SIZE),
-    regenApplied: regenJustFired,
-    timedOut,
   });
-  history[history.length - 1].score = computeScore();
-  if (retired) recordRunEnd("blown");
 
   const remaining = Math.max(POOL_SIZE - spent, 0);
   announce(
@@ -202,7 +188,7 @@ function accuse(idx) {
     (retired && guardianOn ? " That spends your last life. Change this answer to save the cover, or end the run." : "")
   );
 
-  afterChoiceRender();
+  afterChoiceRender(guardianReselect);
 }
 
 function renderWhodunnitDebrief() {
@@ -220,23 +206,23 @@ function renderWhodunnitDebrief() {
   const archName = COVERS[current.legend.spineId].name;
   const impArch = current.cast.imposterArchetype;
   const liarReal = COVERS[impArch] ? COVERS[impArch].name : FACETS[impArch].name;
-  html += `<p>${liar.name} was only faking ${archName}: the slips read like ${liarReal}. The others mostly held true.</p>`;
+  html += `<p>${liar.name} was only faking ${archName}: the slips read like ${liarReal}. The others were just being themselves.</p>`;
   html += `<h2 class="section-label">Suspect reads</h2>`;
   if (s.imposterTell) {
     const tags = s.sceneTags || s.beatPrompts.map((_, i) => `scene ${i + 1}`);
     const readMark = (si, sc) => (((current.beatReads && current.beatReads[sc]) || []).includes(String(si)) ? "✓" : "✗");
     const crackScenes = current.cast.tiers[liarIdx].map((t, i) => (t === "crack" ? i : -1)).filter(i => i >= 0);
-    const crackLabels = crackScenes.map(sc => `<span class="tier-tag tier-crack">${TIER_LABEL.crack}</span><span class="read-result">${readMark(liarIdx, sc)}</span>`).join(" ");
+    const crackLabels = crackScenes.map(sc => `<span class="tier-tag tier-crack">${WHO_TIER_LABEL.crack}</span><span class="read-result">${readMark(liarIdx, sc)}</span>`).join(" ");
     const crackTags = crackScenes.map(i => tags[i]);
-    html += `<p class="tell-line"><span class="who">${liar.name}:</span> ${crackLabels} ${s.imposterTell}; that's not ${archName}, that's ${liarReal} wearing ${archName}'s coat. Cover broke on ${listJoin(crackTags)}.</p>`;
+    html += `<p class="tell-line"><span class="who">${liar.name}:</span> ${crackLabels} ${s.imposterTell}. That isn't ${archName}; that's ${liarReal} wearing ${archName}'s coat, and the stitching gave on ${listJoin(crackTags)}.</p>`;
     s.beatPrompts.forEach((_, sc) => {
       s.suspects.forEach((sus, si) => {
         if (si !== liarIdx && current.cast.tiers[si][sc] === "hairline") {
-          html += `<p class="tell-line"><span class="who">${sus.name}:</span> <span class="tier-tag tier-hairline">${TIER_LABEL.hairline}</span><span class="read-result">${readMark(si, sc)}</span> slipped on ${tags[sc]}.</p>`;
+          html += `<p class="tell-line"><span class="who">${sus.name}:</span> <span class="tier-tag tier-hairline">${WHO_TIER_LABEL.hairline}</span><span class="read-result">${readMark(si, sc)}</span> drifted on ${tags[sc]}.</p>`;
         }
       });
     });
-    html += `<p class="reveal-para">Each stood out, but one slip isn't a pattern. A borrowed profile never fits the paw.</p>`;
+    html += `<p class="reveal-para">One tell isn't a pattern. The consistent scene cracks revealed the imposter.</p>`;
   } else {
     const epilogue = whodunnitEpilogue(s, current.cast);
     if (epilogue) epilogue.split("\n\n").forEach(para => { html += `<p class="reveal-para">${para}</p>`; });
