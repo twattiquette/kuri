@@ -2,8 +2,8 @@ function renderDevPanel() {
   const panel = document.getElementById("devBody");
   let poolHtml = `<p class="dev-version">Version ${VERSION}</p>`;
   poolHtml += `<p class="dev-version">` +
-    `<label class="dev-toggle">id <input type="text" id="devMissionIdInput" size="5"></label>` +
-    `<br><label class="dev-toggle"><input type="checkbox" id="tierGateToggle" data-change="tier-gate" ${bypassTierGate ? "checked" : ""}> unlock all levels</label>` +
+    `<label class="dev-toggle">id <input type="text" id="devMissionIdInput" size="5"></label> ` +
+    `<label class="dev-toggle"><input type="checkbox" id="tierGateToggle" data-change="tier-gate" ${bypassTierGate ? "checked" : ""}> unlock all levels</label>` +
     `</p>`;
 
   let curHtml = "";
@@ -139,33 +139,81 @@ function renderRecords() {
   if (!panel) return;
   const stats = loadStats();
   const agg = stats.aggregates || {};
-  const note = `<p class="records-note">local personal records, stored on this device only.</p>`;
+  const note = `<p class="records-note">local personal records, stored on this device only.` +
+    (stats.runs.length ? ` <button type="button" class="records-clear" data-action="records-clear">clear records</button>` : ``) +
+    `</p>`;
+  const heading = `<div class="achievements-header">service record</div>`;
   const achievements = renderAchievementsSection(stats);
   if (!stats.runs.length) {
-    panel.innerHTML = `<p class="records-empty">no runs recorded yet.</p>${achievements}${note}`;
+    panel.innerHTML = `${heading}<p class="records-empty">no runs recorded yet.</p>${achievements}${note}`;
     return;
   }
-  const summary = `<div class="records-summary stats">` +
-    `<span class="stat"><span class="stat-label">Best score</span> <b>${agg.bestScore || 0}</b></span>` +
-    `<span class="stat"><span class="stat-label">Best rank</span> <b>${agg.bestRank || "none"}</b></span>` +
-    `<span class="stat"><span class="stat-label">Total runs</span> <b>${agg.totalRuns || 0}</b></span>` +
-    `<span class="stat"><span class="stat-label">Total missions</span> <b>${agg.totalMissions || 0}</b></span>` +
-    `</div>`;
+  const grp = (title, body) => `<div class="records-group"><div class="records-group-title">${title}</div><div class="records-group-stats stats">${body}</div></div>`;
+  const stat = (label, value, tip) => `<span class="stat"${tip ? ` title="${tip}"` : ""}><span class="stat-label">${label}</span> <b>${value}</b></span>`;
+  const overallGrp = grp("overall",
+    stat("Best score", agg.bestScore || 0) +
+    stat("Best rank", agg.bestRank || "none") +
+    stat("Total runs", agg.totalRuns || 0) +
+    ((agg.livesRuns || 0) ? stat("Avg lives", Math.round((agg.totalLivesLeft / agg.livesRuns) * 10) / 10) : ""));
+  const timeGrp = (agg.timedRuns || 0)
+    ? grp("run time",
+        stat("Total", formatElapsed(agg.totalRunMs)) +
+        stat("Average", formatElapsed(agg.totalRunMs / agg.timedRuns)) +
+        stat("Fastest", formatElapsed(agg.shortestRunMs)) +
+        stat("Longest", formatElapsed(agg.longestRunMs)))
+    : "";
+  const missionsGrp = grp("missions",
+    stat("Total", (agg.totalMissions || 0) + (agg.totalSkipped || 0) + (agg.totalFailed || 0)) +
+    stat("Completed", agg.totalMissions || 0) +
+    stat("Skipped", agg.totalSkipped || 0) +
+    stat("Failed", agg.totalFailed || 0));
+  const avgMissionText = (agg.totalTimedMissions || 0)
+    ? formatElapsed(agg.totalMissionMs / agg.totalTimedMissions)
+    : "–";
+  const modesGrp = grp("modes",
+    stat("Guardian", `${agg.totalAnswersChanged || 0} · ${agg.totalGuardianSaves || 0}`, "answers changed · run-end saves") +
+    stat("Regen", agg.totalLivesRegained || 0, "lives regained") +
+    stat("Streak resets", agg.totalStreakResets || 0) +
+    stat("Challenge", `${agg.totalFailed || 0} · ${avgMissionText}`, "timeouts · avg mission time"));
+  const coverIds = Object.keys(agg.covers || {});
+  let coversBody = "";
+  if (coverIds.length) {
+    const c = agg.covers;
+    const nameOf = id => (COVERS[id] || FACETS[id]).name;
+    const best = coverIds.slice().sort((a, b) => (c[b].clean / c[b].missions) - (c[a].clean / c[a].missions) || c[b].missions - c[a].missions)[0];
+    const worst = coverIds.slice().sort((a, b) => (c[b].crack / c[b].missions) - (c[a].crack / c[a].missions) || c[b].missions - c[a].missions)[0];
+    if (c[best].clean > 0) coversBody += stat("Best (held)", `${nameOf(best)} ${c[best].clean}/${c[best].missions}`);
+    if (worst !== best && c[worst].crack > 0) coversBody += stat("Worst (cracked)", `${nameOf(worst)} ${c[worst].crack}/${c[worst].missions}`);
+  }
+  if (agg.whoTotal) {
+    coversBody += stat("Imposters", `${agg.whoCorrect || 0}/${agg.whoTotal}`, "imposters identified");
+    if (agg.whoScenesReadable) coversBody += stat("Scenes", `${agg.whoScenesCaught || 0}/${agg.whoScenesReadable}`, "suspect scenes read correctly");
+  }
+  const coversGrp = coversBody ? grp("covers", coversBody) : "";
+  const summary = `<div class="records-groups">${overallGrp}${timeGrp}${missionsGrp}${coversGrp}${modesGrp}</div>`;
   const recent = stats.runs.slice(-10).reverse();
+  const modeFlags = [["guardian", "g"], ["regen", "r"], ["endless", "e"], ["challenge", "c"]];
   const rows = recent.map(run => {
     const isBest = agg.bestScore != null && run.score === agg.bestScore;
+    const active = modeFlags.filter(f => run[f[0]]);
+    const modeCell = active.length
+      ? `<td title="${active.map(f => f[0]).join(", ")}">${active.map(f => f[1]).join("")}</td>`
+      : `<td></td>`;
     return `<tr class="${isBest ? "records-best" : ""}">` +
       `<td>${formatRecordDate(run.ended)}</td>` +
-      `<td>${run.outcome}</td>` +
-      `<td>${run.missions}</td>` +
+      `<td>${OUTCOME_LABEL[run.outcome] || run.outcome}</td>` +
+      `<td>${run.livesLeft == null ? "" : run.livesLeft}</td>` +
       `<td>${run.score}</td>` +
       `<td>${run.rank || ""}</td>` +
+      `<td>${run.runMs ? formatElapsed(run.runMs) : ""}</td>` +
+      `<td>${run.missions} · ${run.skipped} · ${run.timeouts}</td>` +
+      modeCell +
       `</tr>`;
   }).join("");
-  const table = `<table class="records-table"><thead><tr>` +
-    `<th>date</th><th>outcome</th><th>missions</th><th>score</th><th>rank</th>` +
-    `</tr></thead><tbody>${rows}</tbody></table>`;
-  panel.innerHTML = summary + table + achievements + note;
+  const table = `<div class="records-table-wrap"><table class="records-table"><thead><tr>` +
+    `<th>date</th><th>outcome</th><th>lives</th><th>score</th><th>rank</th><th>run time</th><th>missions c·s·f</th><th>mode</th>` +
+    `</tr></thead><tbody>${rows}</tbody></table></div>`;
+  panel.innerHTML = heading + summary + table + achievements + note;
 }
 
 const THEME_KEY = "kuri-theme";
@@ -320,6 +368,16 @@ function onDelegatedClick(e) {
     }
     case "next-mission": newMission(); break;
     case "reset-pool": resetPool(); break;
+    case "records-clear": {
+      if (el.dataset.armed) {
+        try { localStorage.removeItem(STATS_KEY); } catch (err) {}
+        renderRecords();
+      } else {
+        el.dataset.armed = "1";
+        el.textContent = "click again to clear runs and badges";
+      }
+      break;
+    }
     case "return-skipped": returnToSkipped(); break;
     case "reselect": startReselect(); break;
     case "save-report": saveReport(el.dataset.outcome); break;
@@ -457,10 +515,9 @@ function init() {
   initCollapse("blurbToggle", "blurb", "intro");
   initCollapse("footerToggle", "footer", "footer");
   if (RECORDS_ENABLED) {
-    initCollapse(["recordsToggleStats", "recordsToggleDev"], "recordsPanel", "records", { startHidden: true });
+    initCollapse("recordsToggleStats", "recordsPanel", "service record", { startHidden: true });
   } else {
     document.getElementById("recordsToggleStats").classList.add("hidden");
-    document.getElementById("recordsToggleDev").classList.add("hidden");
     document.getElementById("recordsPanel").classList.add("hidden");
   }
   initCollapse("modeSettingsToggle", "modeSettingsPanel", "", { startHidden: true, staticLabel: true, persist: true });

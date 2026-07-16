@@ -15,3 +15,5 @@ const SKIP_HEAVY_FLAVOR = "You skipped more than you played. Hard to judge a cov
 const TREND_BUCKET_LABEL = { clean: "Held", hairline: "Hairline tells", crack: "Cracked" };
 const TREND_BUCKET_VERB = { clean: "held", hairline: "hairline tell", crack: "cracked" };
 const WHO_VERB = { clean: "named correctly", crack: "misread" };
+
+const OUTCOME_LABEL = { blown: "burnt", complete: "clean exit" };

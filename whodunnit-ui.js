@@ -151,7 +151,7 @@ function accuse(idx) {
   const guardianReselect = rechoose && guardianOn && current.reselecting;
   if (rechoose) {
     undoRechoose();
-    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; }
+    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; answersChanged++; }
     current.reselecting = false;
   } else {
     completedCount++;

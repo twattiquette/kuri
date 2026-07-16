@@ -9,7 +9,7 @@ function formatClock(ms) {
 
 function renderRunClock() {
   const el = document.getElementById("runClock");
-  if (!el || trainingComplete) return;
+  if (!el || trainingComplete || retired) return;
   el.innerHTML = `<span class="stat-label">Run time</span> <b>${formatClock(elapsedMs())}</b>`;
 }
 
@@ -263,7 +263,7 @@ function renderRunEndScreen(area, outcome) {
     const avatarEl = document.getElementById("avatar");
     if (avatarEl) avatarEl.src = assetImg("coverblown.png");
   }
-  const bannerText = blown ? "COVER BLOWN" : "TRAINING COMPLETE";
+  const bannerText = OUTCOME_LABEL[blown ? "blown" : "complete"].toUpperCase();
   let html = `<div class="debrief${blown ? " outcome-blown" : ""}">` +
     `<p class="run-end-banner${blown ? " cracked" : ""}">${bannerText}</p>` +
     `<p class="handler-label"><img class="handler-portrait" src="${HANDLER_IMG}" alt="">THE HANDLER</p>` +
@@ -552,8 +552,8 @@ function drawReportCanvas(outcome, img) {
   const livesValueText = `${remaining} / ${POOL_SIZE}`;
   const livesIcons = Array.from({ length: POOL_SIZE }, (_, i) => i >= POOL_SIZE - spent ? "💀" : "🐱").join("");
   const scoreText = `${computeScore()}`;
-  const titleText = "kuri · spy training report";
-  const bannerText = blown ? "COVER BLOWN" : "TRAINING COMPLETE";
+  const titleText = "kuri · training report";
+  const bannerText = OUTCOME_LABEL[blown ? "blown" : "complete"].toUpperCase();
 
   function statWidth(label, value) {
     ctx.font = "bold 10px sans-serif";
@@ -749,9 +749,9 @@ function retentionNudgeHtml() {
   const stats = loadStats();
   const lines = [];
   const nextRank = nextRankUp(stats);
-  if (nextRank) lines.push(`next rank to chase: ${nextRank}`);
+  if (nextRank) lines.push(`next rank: ${nextRank}`);
   const closest = closestAchievementProgress(stats);
-  if (closest) lines.push(`closest badge: ${closest.name} (${closest.current}/${closest.target})`);
+  if (closest) lines.push(`achievement progress: ${closest.name} (${closest.current}/${closest.target})`);
   if (!lines.length) return "";
   return `<div class="retention-nudge">${lines.map(l => `<p>${l}</p>`).join("")}</div>`;
 }
@@ -823,7 +823,7 @@ function handlerProseLines(outcome) {
   }
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const lines = [
-    "Training complete for this run.",
+    "Clean exit on this run.",
     `You closed it out with ${remaining} of ${POOL_SIZE} lives in hand.`,
     rankFlavorLine(),
   ];

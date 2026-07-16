@@ -9,6 +9,7 @@ let skippedCount = 0;
 let skippedStack = [];
 let guardianSaves = 0;
 let guardianStreakResets = 0;
+let answersChanged = 0;
 let usedLegends = {};
 let usedArchetypes = {};
 let shownEggs = {};
@@ -99,11 +100,14 @@ function poolStatusLine() {
   const parts = [];
   if (remaining <= 4) parts.push(`🐾 The Handler's tail lashes: “Nine lives, ${computeRank()}!”`);
   if (document.getElementById("regenToggle").checked) {
+    const atFull = spent === 0;
     let hearts = "";
     for (let i = 0; i < REGEN_STREAK_LENGTH; i++) {
-      hearts += i < cleanStreak ? "💗" : `<span class="regen-heart-empty">💗</span>`;
+      hearts += !atFull && i < cleanStreak ? "💗" : `<span class="regen-heart-empty">💗</span>`;
     }
-    parts.push(`<span class="regen-streak" title="${REGEN_STREAK_LENGTH} clean missions in a row regains a life. changing an answer via guardian breaks the streak">${hearts}</span>`);
+    const tip = `${REGEN_STREAK_LENGTH} clean missions in a row regains a life. changing an answer via guardian breaks the streak` +
+      (atFull ? ". inactive while at full lives" : "");
+    parts.push(`<span class="regen-streak${atFull ? " regen-streak-inactive" : ""}" title="${tip}">${hearts}</span>`);
   }
   return parts.join(" ");
 }
@@ -237,7 +241,7 @@ function chooseOption(idx) {
 
   if (rechoose) {
     undoRechoose();
-    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; }
+    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; answersChanged++; }
     current.reselecting = false;
   } else {
     completedCount++;
@@ -755,7 +759,7 @@ function newMission() {
     trainingComplete = true;
     recordRunEnd("complete");
     current = null;
-    announce("Training complete. You've reached the mission cap for this run. Press Restart Game to start a new run.");
+    announce("Clean exit. You've reached the mission cap for this run. Press Restart Game to start a new run.");
     renderMission();
     renderDevPanel();
     renderRecords();
@@ -797,7 +801,7 @@ function newMission() {
   if (!candidates.length) {
     trainingComplete = true;
     recordRunEnd("complete");
-    announce("Training complete. Every mission combination has been run. Press Restart Game to start a new run.");
+    announce("Clean exit. Every mission combination has been run. Press Restart Game to start a new run.");
     renderMission();
     renderDevPanel();
     renderRecords();
@@ -843,11 +847,42 @@ function loadStats() {
     if (!Array.isArray(parsed.unlocked)) parsed.unlocked = [];
     parsed.runs.forEach(r => {
       if (r.challenge === undefined) r.challenge = false;
+      if (r.guardian === undefined) r.guardian = false;
+      if (r.regen === undefined) r.regen = false;
+      if (r.endless === undefined) r.endless = false;
+      if (r.livesLeft === undefined) r.livesLeft = null;
+      if (r.skipped === undefined) r.skipped = 0;
       if (r.timeouts === undefined) r.timeouts = 0;
       if (r.runMs === undefined) r.runMs = 0;
+      if (r.missionMs === undefined) r.missionMs = 0;
+      if (r.missionsTimed === undefined) r.missionsTimed = 0;
       if (r.guardianSaves === undefined) r.guardianSaves = 0;
       if (r.streakResets === undefined) r.streakResets = 0;
+      if (r.livesRegained === undefined) r.livesRegained = 0;
+      if (r.answersChanged === undefined) r.answersChanged = 0;
     });
+    if (parsed.aggregates.totalGuardianSaves === undefined) {
+      const a = parsed.aggregates;
+      a.totalGuardianSaves = 0; a.totalStreakResets = 0;
+      parsed.runs.forEach(r => {
+        a.totalGuardianSaves += r.guardianSaves;
+        a.totalStreakResets += r.streakResets;
+      });
+    }
+    if (parsed.aggregates.totalSkipped === undefined) {
+      const a = parsed.aggregates;
+      a.totalSkipped = 0; a.totalFailed = 0; a.timedRuns = 0; a.totalRunMs = 0; a.longestRunMs = 0; a.shortestRunMs = 0;
+      parsed.runs.forEach(r => {
+        a.totalSkipped += r.skipped;
+        a.totalFailed += r.timeouts;
+        if (r.runMs > 0) {
+          a.timedRuns += 1;
+          a.totalRunMs += r.runMs;
+          a.longestRunMs = Math.max(a.longestRunMs, r.runMs);
+          a.shortestRunMs = a.shortestRunMs ? Math.min(a.shortestRunMs, r.runMs) : r.runMs;
+        }
+      });
+    }
     return parsed;
   } catch (e) {
     return freshStats();
@@ -864,7 +899,7 @@ function rankMeets(rank, minRank) {
 }
 
 const ACHIEVEMENTS_ENABLED = true;
-const RECORDS_ENABLED = false;
+const RECORDS_ENABLED = true;
 const ACHIEVEMENTS = [
   { id: "first_complete", name: "First Run", desc: "complete a training run without getting caught.",
     check: stats => stats.runs.some(r => r.outcome === "complete") },
@@ -918,6 +953,7 @@ function recordRunEnd(outcome) {
   if (runRecorded) return;
   runRecorded = true;
   const stats = loadStats();
+  const timedAnswers = challengeEnabled() ? history.filter(h => !h.timedOut && h.msTaken != null) : [];
   const run = {
     id: newRunId(),
     ended: Date.now(),
@@ -931,15 +967,57 @@ function recordRunEnd(outcome) {
     cleanMissions: history.filter(h => h.total === 0).length,
     cracks: history.filter(h => h.total >= 2).length,
     challenge: challengeEnabled(),
+    guardian: document.getElementById("guardianToggle").checked,
+    regen: document.getElementById("regenToggle").checked,
+    endless: document.getElementById("endlessToggle").checked,
+    livesLeft: Math.max(POOL_SIZE - spent, 0),
+    missionMs: timedAnswers.reduce((t, h) => t + h.msTaken, 0),
+    missionsTimed: timedAnswers.length,
     timeouts: history.filter(h => h.timedOut).length,
     runMs: elapsedMs(),
     guardianSaves,
     streakResets: guardianStreakResets,
+    answersChanged,
+    livesRegained: history.filter(h => h.regenApplied).length * REGEN_LIVES,
   };
   stats.runs.push(run);
   if (stats.runs.length > STATS_RUN_CAP) stats.runs = stats.runs.slice(stats.runs.length - STATS_RUN_CAP);
   stats.aggregates.totalRuns = (stats.aggregates.totalRuns || 0) + 1;
   stats.aggregates.totalMissions = (stats.aggregates.totalMissions || 0) + run.missions;
+  stats.aggregates.totalSkipped = (stats.aggregates.totalSkipped || 0) + run.skipped;
+  stats.aggregates.totalFailed = (stats.aggregates.totalFailed || 0) + run.timeouts;
+  stats.aggregates.totalGuardianSaves = (stats.aggregates.totalGuardianSaves || 0) + run.guardianSaves;
+  stats.aggregates.totalStreakResets = (stats.aggregates.totalStreakResets || 0) + run.streakResets;
+  stats.aggregates.totalLivesRegained = (stats.aggregates.totalLivesRegained || 0) + run.livesRegained;
+  stats.aggregates.totalAnswersChanged = (stats.aggregates.totalAnswersChanged || 0) + run.answersChanged;
+  stats.aggregates.totalLivesLeft = (stats.aggregates.totalLivesLeft || 0) + run.livesLeft;
+  stats.aggregates.livesRuns = (stats.aggregates.livesRuns || 0) + 1;
+  const covers = stats.aggregates.covers || {};
+  history.forEach(h => {
+    if (h.timedOut) return;
+    if (h.rows && h.rows.length) {
+      const spine = h.rows[0];
+      if (!covers[spine.rowId]) covers[spine.rowId] = { clean: 0, hairline: 0, crack: 0, missions: 0 };
+      covers[spine.rowId].missions++;
+      covers[spine.rowId][spine.tier]++;
+    } else {
+      stats.aggregates.whoTotal = (stats.aggregates.whoTotal || 0) + 1;
+      if (h.total === 0) stats.aggregates.whoCorrect = (stats.aggregates.whoCorrect || 0) + 1;
+      stats.aggregates.whoScenesCaught = (stats.aggregates.whoScenesCaught || 0) + (h.sceneCaught || 0);
+      stats.aggregates.whoScenesReadable = (stats.aggregates.whoScenesReadable || 0) + (h.sceneReadable || 0);
+    }
+  });
+  stats.aggregates.covers = covers;
+  if (run.missionsTimed > 0) {
+    stats.aggregates.totalMissionMs = (stats.aggregates.totalMissionMs || 0) + run.missionMs;
+    stats.aggregates.totalTimedMissions = (stats.aggregates.totalTimedMissions || 0) + run.missionsTimed;
+  }
+  if (run.runMs > 0) {
+    stats.aggregates.timedRuns = (stats.aggregates.timedRuns || 0) + 1;
+    stats.aggregates.totalRunMs = (stats.aggregates.totalRunMs || 0) + run.runMs;
+    stats.aggregates.longestRunMs = Math.max(stats.aggregates.longestRunMs || 0, run.runMs);
+    stats.aggregates.shortestRunMs = stats.aggregates.shortestRunMs ? Math.min(stats.aggregates.shortestRunMs, run.runMs) : run.runMs;
+  }
   stats.aggregates.bestScore = Math.max(stats.aggregates.bestScore || 0, run.score);
   stats.aggregates.bestRank = betterRank(stats.aggregates.bestRank, run.rank);
   saveStats(stats);
@@ -959,6 +1037,7 @@ function resetPool() {
   skippedStack = [];
   guardianSaves = 0;
   guardianStreakResets = 0;
+  answersChanged = 0;
   hintsLeft = HINTS_PER_RUN;
   usedLegends = {};
   usedArchetypes = {};

@@ -82,13 +82,18 @@
   .blurb p { margin: 0 0 12px; }
   .blurb p:last-child { margin-bottom: 0; }
   .records-panel { font-size: 0.9em; margin-bottom: 18px; }
-  .records-summary { flex-direction: row; flex-wrap: wrap; gap: 4px 20px; margin-bottom: 10px; }
+  .regen-streak-inactive { opacity: 0.55; }
+  .records-groups { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-bottom: 12px; }
+  .records-group-title { color: var(--dim); font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.8em; margin-bottom: 4px; }
   .records-empty { color: var(--dim); margin: 0 0 8px; }
-  .records-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .records-table-wrap { overflow-x: auto; margin-bottom: 8px; }
+  .records-table { width: 100%; border-collapse: collapse; }
   .records-table th, .records-table td { border: 1px solid var(--border); padding: 4px 6px; text-align: left; font-size: 0.9em; }
   .records-table th { color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; font-weight: normal; }
   .records-table tr.records-best td { color: var(--accent); font-weight: bold; }
   .records-note { font-size: 0.85em; color: var(--dim); margin: 0; }
+  .records-clear { background: none; border: none; padding: 0; margin-left: 4px; font-size: 1em; color: var(--dim); text-decoration: underline; cursor: pointer; }
+  .records-clear:hover, .records-clear:focus-visible, .records-clear[data-armed] { color: var(--accent); }
   .achievements { margin: 4px 0 10px; }
   .achievements-header { color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.85em; margin-bottom: 6px; }
   .achievements-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -187,7 +192,7 @@
   .card .facet-name { color: var(--accent); }
   .handler-portrait { width: 40px; height: 40px; object-fit: contain; background: var(--portrait-bg); border-radius: 6px; border: 1px solid var(--border); vertical-align: middle; margin-right: 6px; }
   .stats-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .avatar { height: 5em; width: auto; border-radius: 6px; display: block; flex-shrink: 0; }
+  .avatar { height: 6.5em; width: auto; border-radius: 6px; display: block; flex-shrink: 0; }
   .stats { display: flex; flex-direction: column; gap: 4px; font-size: 0.85em; color: var(--ink); user-select: text; min-width: 0; }
   .stats .stat-label, .mission-id .stat-label { color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; }
   .stats .stat b, .mission-id b { color: var(--accent); font-weight: bold; white-space: nowrap; }
