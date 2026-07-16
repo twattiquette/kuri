@@ -17,6 +17,7 @@ let pendingEgg = null;
 let coverAnchorReturn = null;
 let coverAnchored = false;
 let trainingComplete = false;
+let allMissionsCleared = false;
 let bypassTierGate = false;
 let recentScenarios = [];
 let lastCoverId = null;
@@ -810,6 +811,7 @@ function newMission() {
   }
   if (!candidates.length) {
     trainingComplete = true;
+    allMissionsCleared = true;
     recordRunEnd("complete");
     announce("Clean exit. Every mission combination has been run. Press Restart Game to start a new run.");
     renderMission();
@@ -870,6 +872,7 @@ function loadStats() {
       if (r.streakResets === undefined) r.streakResets = 0;
       if (r.livesRegained === undefined) r.livesRegained = 0;
       if (r.answersChanged === undefined) r.answersChanged = 0;
+      if (r.allCleared === undefined) r.allCleared = false;
     });
     if (parsed.aggregates.totalGuardianSaves === undefined) {
       const a = parsed.aggregates;
@@ -1046,11 +1049,18 @@ const ACHIEVEMENTS = [
     check: stats => (stats.aggregates.totalFailed || 0) >= 5,
     progress: stats => ({ current: stats.aggregates.totalFailed || 0, target: 5 }) },
 
+  { id: "infinity", ...ACHIEVEMENT_COPY.infinity,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.endless && r.allCleared) },
+
   { id: "rapid_deployment", ...ACHIEVEMENT_COPY.rapid_deployment,
-    check: stats => (stats.aggregates.timedRuns || 0) >= 1 },
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.challenge) },
   { id: "blitz", ...ACHIEVEMENT_COPY.blitz,
     check: stats => (stats.aggregates.totalTimedMissions || 0) >= 10,
     progress: stats => ({ current: stats.aggregates.totalTimedMissions || 0, target: 10 }) },
+  { id: "under_pressure", ...ACHIEVEMENT_COPY.under_pressure,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.challenge && r.runMs > 0 && r.runMs < 600000) },
+  { id: "lightning", ...ACHIEVEMENT_COPY.lightning,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.challenge && r.missionsTimed >= 5 && (r.missionMs / r.missionsTimed) < 15000) },
 
   { id: "clean_sweep", ...ACHIEVEMENT_COPY.clean_sweep,
     check: stats => stats.runs.some(r => r.outcome === "complete" && r.cracks === 0 && r.skipped === 0 && r.streakResets === 0) },
@@ -1111,6 +1121,7 @@ function recordRunEnd(outcome) {
     streakResets: guardianStreakResets,
     answersChanged,
     livesRegained: history.filter(h => h.regenApplied).length * REGEN_LIVES,
+    allCleared: allMissionsCleared,
   };
   stats.runs.push(run);
   if (stats.runs.length > STATS_RUN_CAP) stats.runs = stats.runs.slice(stats.runs.length - STATS_RUN_CAP);
@@ -1176,6 +1187,7 @@ function resetPool() {
   shownEggs = {};
   pendingEgg = null;
   trainingComplete = false;
+  allMissionsCleared = false;
   runRecorded = false;
   runStartedAt = null;
   runTimerStarted = false;

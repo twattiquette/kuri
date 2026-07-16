@@ -1403,6 +1403,7 @@ const ACHIEVEMENT_CATS = [
   { id: "ci",        label: "counterintelligence" },
   { id: "covers",    label: "covers" },
   { id: "dead_drop", label: "dead drops" },
+  { id: "elite",     label: "elite ops" },
   { id: "service",   label: "service" },
 ];
 
@@ -1448,7 +1449,10 @@ const ACHIEVEMENT_COPY = {
   nine_lives:          { cat: "service",    name: "Nine Lives",             desc: "regain nine lives across all runs." },
   adaptable:           { cat: "service",    name: "Adaptable",              desc: "change your answer ten times across all runs." },
   weathered:           { cat: "service",    name: "Weathered",              desc: "survive five mission timeouts across all runs." },
-  rapid_deployment:    { cat: "service",    name: "Rapid Deployment",       desc: "complete a timed run." },
-  blitz:               { cat: "service",    name: "Blitz",                  desc: "finish ten timed missions." },
+  infinity:            { cat: "ops",        name: "To Infinity & Beyond",   desc: "clear every mission in endless mode." },
+  rapid_deployment:    { cat: "elite",      name: "Rapid Deployment",       desc: "complete a challenge run." },
+  blitz:               { cat: "elite",      name: "Blitz",                  desc: "finish ten challenge missions." },
+  under_pressure:      { cat: "elite",      name: "Under Pressure",         desc: "complete a challenge run in under ten minutes." },
+  lightning:           { cat: "elite",      name: "Lightning Round",        desc: "average under fifteen seconds per mission on challenge." },
 };
 
