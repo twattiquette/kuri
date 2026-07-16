@@ -293,7 +293,7 @@
   .run-report-summary { margin: 4px 0; }
   .run-report-entry { font-size: 0.85em; color: var(--dim); margin: 2px 0 2px 16px; }
   .run-elapsed { font-size: 0.85em; color: var(--dim); margin: 6px 0 0; }
-  .retention-nudge { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; margin: 10px 0; }
+  .retention-nudge { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; margin: 10px 0; display: inline-block; }
   .retention-nudge p { font-size: 0.85em; color: var(--dim); margin: 2px 0; }
   .retention-nudge p:first-child { color: var(--accent); }
   .tell-line { font-size: 0.85em; color: var(--dim); margin: 4px 0 4px 16px; }

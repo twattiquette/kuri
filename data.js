@@ -1,4 +1,4 @@
-const VERSION = "0.74.0-alpha";
+const VERSION = "0.74.1-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1280,4 +1280,130 @@ function buildEggMorse2() {
     },
   };
 }
+
+// ── copy ──
+
+const RANK_NAMES = {
+  recruit: "Recruit",
+  trainee: "Trainee",
+  fieldAgent: "Field Agent",
+  operative: "Operative",
+  seniorOperative: "Senior Operative",
+  masterSpy: "Master Spy",
+  burned: "Burn Notice",
+};
+
+const RANK_FLAVOR = {
+  "Master Spy": "Lives to spare, no wasted motion. Command's taking notice.",
+  "Senior Operative": "Strong finish. Cover barely cracked.",
+  "Operative": "You spent your share of lives, but you're qualified.",
+  "Field Agent": "Close to the wire. Lives ran thin, but you made it through.",
+  "Trainee": "You crossed the line running on fumes.",
+  "Recruit": "You crossed the line, barely. More training ahead.",
+};
+
+const EASY_COVER_HINT = "Read your assigned cover. Pick the response it would play.";
+
+const SKIP_ALL_FLAVOR = "You skipped every mission. Can't read a cover you never wear; nothing to grade here.";
+const SKIP_HEAVY_FLAVOR = "You skipped more than you played. Hard to judge a cover you barely wore.";
+
+const TREND_BUCKET_LABEL = { clean: "Held", hairline: "Hairline tells", crack: "Cracked" };
+const TREND_BUCKET_VERB = { clean: "held", hairline: "hairline tell", crack: "cracked" };
+const WHO_VERB = { clean: "named correctly", crack: "misread" };
+
+const OUTCOME_LABEL = { blown: "burnt", complete: "clean exit" };
+
+const BUTTON_COPY = {
+  play: "Play",
+  pause: "Pause",
+  resume: "Resume",
+  hide: "Hide",
+  show: "Show",
+  startGame: "Start Game",
+  skip: "Skip",
+  endRun: "End run",
+  nextMission: "Next Mission",
+  skipArrow: "Skip →",
+  endRunArrow: "End run →",
+  nextMissionArrow: "Next Mission →",
+};
+
+const DEBRIEF_COPY = {
+  regenRestored: "Life regen restored",
+  guardianSaved: "Guardian saved you from",
+  runEndingAnswer: "run-ending answer",
+  guardianUsed: "Guardian was used",
+  streakReset: "streak reset",
+  challengeClock: "Challenge clock ran out",
+  cleanFallbackBlown: "No pattern to it. Just ran out of runway.",
+  cleanFallbackComplete: "Every cover held clean. No tells to speak of.",
+};
+
+const RECORDS_COPY = {
+  heading: "service record",
+  note: "local personal records, stored on this device only.",
+  clearBtn: "clear records",
+  empty: "no runs recorded yet.",
+  achievementsHeading: "achievements",
+  nudgeNextRank: "next rank: ",
+  nudgeAchievement: "achievement progress: ",
+  groups: {
+    overall: "overall",
+    runTime: "run time",
+    missions: "missions",
+    covers: "covers",
+    modes: "modes",
+  },
+  stats: {
+    bestScore: "Best score",
+    bestRank: "Best rank",
+    totalRuns: "Total runs",
+    avgLives: "Avg lives",
+    total: "Total",
+    average: "Average",
+    fastest: "Fastest",
+    longest: "Longest",
+    completed: "Completed",
+    skipped: "Skipped",
+    failed: "Failed",
+    guardian: "Guardian",
+    regen: "Regen",
+    streakResets: "Streak resets",
+    challenge: "Challenge",
+    bestHeld: "Best (held)",
+    worstCracked: "Worst (cracked)",
+    imposters: "Imposters",
+    scenes: "Scenes",
+  },
+  tips: {
+    guardian: "answers changed · run-end saves",
+    regen: "lives regained",
+    challenge: "timeouts · avg mission time",
+    imposters: "imposters identified",
+    scenes: "suspect scenes read correctly",
+  },
+  th: {
+    date: "date",
+    outcome: "outcome",
+    lives: "lives",
+    score: "score",
+    rank: "rank",
+    runTime: "run time",
+    missions: "missions c·s·f",
+    mode: "mode",
+  },
+};
+
+const ACHIEVEMENT_COPY = {
+  first_complete: { name: "First Run", desc: "complete a training run without getting caught." },
+  rank_field_agent: { name: "Field Agent", desc: "reach Field Agent rank in a single run." },
+  rank_operative: { name: "Operative", desc: "reach Operative rank in a single run." },
+  rank_senior: { name: "Senior Operative", desc: "reach Senior Operative rank in a single run." },
+  rank_master: { name: "Master Spy", desc: "reach Master Spy rank in a single run." },
+  clean_sheet: { name: "Clean Sheet", desc: "complete a run with zero cracks." },
+  survivor: { name: "Survivor", desc: "complete a run using three lives or fewer." },
+  veteran: { name: "Veteran", desc: "finish ten training runs." },
+  centurion: { name: "Centurion", desc: "clear one hundred missions across all runs." },
+  high_roller: { name: "High Roller", desc: "hit a score of forty or higher." },
+};
 

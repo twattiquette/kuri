@@ -106,7 +106,7 @@ function renderWhodunnitMission(area) {
   if (!resolved && skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
   else if (answered && guardianOn && !current.reselecting) html += `<button id="changeAnswerBtn" class="back-btn" data-action="reselect">↺ Change answer</button>`;
   html += `<div class="util">`;
-  html += `<button id="nextBtn" class="primary" data-action="next-mission"${current.reselecting ? " disabled" : ""}>${resolved ? (retired && guardianOn ? "End run" : "Next Mission") : "Skip"} →</button>`;
+  html += `<button id="nextBtn" class="primary" data-action="next-mission"${current.reselecting ? " disabled" : ""}>${resolved ? (retired && guardianOn ? BUTTON_COPY.endRun : BUTTON_COPY.nextMission) : BUTTON_COPY.skip} →</button>`;
   html += `</div></div>`;
   const leftHint = !resolved && skippedStack.length ? `<kbd>←</kbd> return to skipped`
     : (answered && guardianOn && !current.reselecting ? `<kbd>←</kbd> change answer` : "");

@@ -674,24 +674,24 @@ function computeRatio() {
 }
 
 function rankFromRatio(ratio, t) {
-  if (ratio >= t.masterSpy) return "Master Spy";
-  if (ratio >= t.seniorOperative) return "Senior Operative";
-  if (ratio >= t.operative) return "Operative";
-  if (ratio >= t.fieldAgent) return "Field Agent";
-  if (ratio >= t.trainee) return "Trainee";
-  return "Recruit";
+  if (ratio >= t.masterSpy) return RANK_NAMES.masterSpy;
+  if (ratio >= t.seniorOperative) return RANK_NAMES.seniorOperative;
+  if (ratio >= t.operative) return RANK_NAMES.operative;
+  if (ratio >= t.fieldAgent) return RANK_NAMES.fieldAgent;
+  if (ratio >= t.trainee) return RANK_NAMES.trainee;
+  return RANK_NAMES.recruit;
 }
 
 const RANK_THRESHOLDS = { masterSpy: 0.90, seniorOperative: 0.80, operative: 0.70, fieldAgent: 0.60, trainee: 0.50 };
-const RANK_ORDER = ["Recruit", "Trainee", "Field Agent", "Operative", "Senior Operative", "Master Spy"];
-const RANK_MISSION_FLOOR = { "Trainee": 2, "Field Agent": 5, "Operative": 9, "Senior Operative": 14, "Master Spy": 20 };
+const RANK_ORDER = [RANK_NAMES.recruit, RANK_NAMES.trainee, RANK_NAMES.fieldAgent, RANK_NAMES.operative, RANK_NAMES.seniorOperative, RANK_NAMES.masterSpy];
+const RANK_MISSION_FLOOR = { [RANK_NAMES.trainee]: 2, [RANK_NAMES.fieldAgent]: 5, [RANK_NAMES.operative]: 9, [RANK_NAMES.seniorOperative]: 14, [RANK_NAMES.masterSpy]: 20 };
 function clampRankByMissions(rank, completed) {
   let idx = RANK_ORDER.indexOf(rank);
   while (idx > 0 && completed < (RANK_MISSION_FLOOR[RANK_ORDER[idx]] || 0)) idx--;
   return RANK_ORDER[idx];
 }
 function computeRank() {
-  if (completedCount === 0) return "Recruit";
+  if (completedCount === 0) return RANK_NAMES.recruit;
   return clampRankByMissions(rankFromRatio(computeRatio(), RANK_THRESHOLDS), completedCount);
 }
 
@@ -702,7 +702,7 @@ const GATE_THRESHOLD_PRESETS = {
   high:   RANK_THRESHOLDS,
 };
 function computeGateRank() {
-  if (completedCount === 0) return "Recruit";
+  if (completedCount === 0) return RANK_NAMES.recruit;
   const table = GATE_THRESHOLD_PRESETS[currentPreset] || RANK_THRESHOLDS;
   return clampRankByMissions(rankFromRatio(computeRatio(), table), completedCount);
 }
@@ -718,10 +718,10 @@ function rankFlavorLine() {
 }
 
 const TIER_RANK_UNLOCK = {
-  "Easy":        "Recruit",
-  "Medium":      "Trainee",
-  "MediumFacet": "Field Agent",
-  "Hard":        "Operative",
+  "Easy":        RANK_NAMES.recruit,
+  "Medium":      RANK_NAMES.trainee,
+  "MediumFacet": RANK_NAMES.fieldAgent,
+  "Hard":        RANK_NAMES.operative,
 };
 
 function getMinTier(scenario) {
@@ -901,27 +901,27 @@ function rankMeets(rank, minRank) {
 const ACHIEVEMENTS_ENABLED = true;
 const RECORDS_ENABLED = true;
 const ACHIEVEMENTS = [
-  { id: "first_complete", name: "First Run", desc: "complete a training run without getting caught.",
+  { id: "first_complete", ...ACHIEVEMENT_COPY.first_complete,
     check: stats => stats.runs.some(r => r.outcome === "complete") },
-  { id: "rank_field_agent", name: "Field Agent", desc: "reach Field Agent rank in a single run.",
-    check: stats => rankMeets(stats.aggregates.bestRank, "Field Agent") },
-  { id: "rank_operative", name: "Operative", desc: "reach Operative rank in a single run.",
-    check: stats => rankMeets(stats.aggregates.bestRank, "Operative") },
-  { id: "rank_senior", name: "Senior Operative", desc: "reach Senior Operative rank in a single run.",
-    check: stats => rankMeets(stats.aggregates.bestRank, "Senior Operative") },
-  { id: "rank_master", name: "Master Spy", desc: "reach Master Spy rank in a single run.",
-    check: stats => rankMeets(stats.aggregates.bestRank, "Master Spy") },
-  { id: "clean_sheet", name: "Clean Sheet", desc: "complete a run with zero cracks.",
+  { id: "rank_field_agent", ...ACHIEVEMENT_COPY.rank_field_agent,
+    check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.fieldAgent) },
+  { id: "rank_operative", ...ACHIEVEMENT_COPY.rank_operative,
+    check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.operative) },
+  { id: "rank_senior", ...ACHIEVEMENT_COPY.rank_senior,
+    check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.seniorOperative) },
+  { id: "rank_master", ...ACHIEVEMENT_COPY.rank_master,
+    check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.masterSpy) },
+  { id: "clean_sheet", ...ACHIEVEMENT_COPY.clean_sheet,
     check: stats => stats.runs.some(r => r.outcome === "complete" && r.cracks === 0) },
-  { id: "survivor", name: "Survivor", desc: "complete a run using three lives or fewer.",
+  { id: "survivor", ...ACHIEVEMENT_COPY.survivor,
     check: stats => stats.runs.some(r => r.outcome === "complete" && r.livesUsed <= 3) },
-  { id: "veteran", name: "Veteran", desc: "finish ten training runs.",
+  { id: "veteran", ...ACHIEVEMENT_COPY.veteran,
     check: stats => (stats.aggregates.totalRuns || 0) >= 10,
     progress: stats => ({ current: stats.aggregates.totalRuns || 0, target: 10 }) },
-  { id: "centurion", name: "Centurion", desc: "clear one hundred missions across all runs.",
+  { id: "centurion", ...ACHIEVEMENT_COPY.centurion,
     check: stats => (stats.aggregates.totalMissions || 0) >= 100,
     progress: stats => ({ current: stats.aggregates.totalMissions || 0, target: 100 }) },
-  { id: "high_roller", name: "High Roller", desc: "hit a score of forty or higher.",
+  { id: "high_roller", ...ACHIEVEMENT_COPY.high_roller,
     check: stats => (stats.aggregates.bestScore || 0) >= 40,
     progress: stats => ({ current: stats.aggregates.bestScore || 0, target: 40 }) },
 ];

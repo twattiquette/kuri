@@ -134,9 +134,9 @@ function morseIsPlaying(text) {
 }
 
 function morsePlayHtml(text) {
-  let symbol = "▶", word = "Play";
-  if (morseIsPlaying(text)) { symbol = "⏸"; word = "Pause"; }
-  else if (morsePlayback && morsePlayback.text === text && morsePlayback.offsetMs > 0) word = "Resume";
+  let symbol = "▶", word = BUTTON_COPY.play;
+  if (morseIsPlaying(text)) { symbol = "⏸"; word = BUTTON_COPY.pause; }
+  else if (morsePlayback && morsePlayback.text === text && morsePlayback.offsetMs > 0) word = BUTTON_COPY.resume;
   return `<span aria-hidden="true">${symbol}</span> <span class="morse-word">${word}</span>`;
 }
 
@@ -238,7 +238,7 @@ function renderChallengeTimer() {
 
 let briefShown = true;
 function briefBar() {
-  const label = briefShown ? "Hide" : "Show";
+  const label = briefShown ? BUTTON_COPY.hide : BUTTON_COPY.show;
   const caret = briefShown ? "▾" : "▸";
   return `<div class="collapse-bar brief-bar"><h2 class="section-label">THE BRIEF</h2>` +
     `<button type="button" class="section-toggle" id="briefToggle" data-action="brief-toggle" aria-controls="briefBody" aria-expanded="${briefShown}">` +
@@ -250,7 +250,7 @@ function renderScoreEgg(area, egg) {
   html += `<div class="status-row"><div class="status-line score-egg"></div>${timerControlsHtml()}</div>`;
   html += `<div class="controls bottom-controls" role="group" aria-label="run controls">`;
   if (skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
-  html += `<div class="util"><button id="newMissionBottom" class="primary" data-action="next-mission">Next Mission →</button></div>`;
+  html += `<div class="util"><button id="newMissionBottom" class="primary" data-action="next-mission">${BUTTON_COPY.nextMissionArrow}</button></div>`;
   html += `</div>`;
   area.innerHTML = html;
   setStatus(egg.status);
@@ -274,7 +274,7 @@ function renderRunEndScreen(area, outcome) {
   html += `<div class="controls bottom-controls" role="group" aria-label="run controls">` +
     `<button id="restartBottom" class="danger" data-action="reset-pool">Restart Game</button>` +
     `<button id="saveReportBtn" class="secondary" data-action="save-report" data-outcome="${outcome}">Save Report</button>` +
-    `<div class="util"><button id="newMissionBottom" class="primary" data-action="next-mission" disabled>Start Game</button></div>` +
+    `<div class="util"><button id="newMissionBottom" class="primary" data-action="next-mission" disabled>${BUTTON_COPY.startGame}</button></div>` +
     `</div>`;
   area.innerHTML = html;
   setStatus(blown ? "🐾 The Handler's claws come out. \"That's the ninth life. There isn't a tenth.\"" : "");
@@ -294,13 +294,13 @@ function renderMission() {
   const topSaveBtn = document.getElementById("saveReportBtnTop");
   if (topSaveBtn && !finalised && !trainingComplete) topSaveBtn.classList.add("hidden");
   document.getElementById("newMission").textContent =
-    (trainingComplete || !current) ? "Start Game" : (current.chosen === null && !current.timedOut ? "Skip →" : (retired && guardianOn ? "End run →" : "Next Mission →"));
+    (trainingComplete || !current) ? BUTTON_COPY.startGame : (current.chosen === null && !current.timedOut ? BUTTON_COPY.skipArrow : (retired && guardianOn ? BUTTON_COPY.endRunArrow : BUTTON_COPY.nextMissionArrow));
   document.getElementById("newMission").disabled = finalised || trainingComplete;
   document.getElementById("statusLine").classList.toggle("retired", finalised);
   document.getElementById("statusLine").classList.toggle("score-egg", !!pendingEgg);
   if (pendingEgg) {
     const nm = document.getElementById("newMission");
-    nm.textContent = "Next Mission →";
+    nm.textContent = BUTTON_COPY.nextMissionArrow;
     nm.disabled = false;
     renderScoreEgg(area, pendingEgg);
     return;
@@ -314,7 +314,7 @@ function renderMission() {
     return;
   }
   if (!current) {
-    area.innerHTML = `<p class="sub">Press "Start Game" to begin.</p>`;
+    area.innerHTML = `<p class="sub">Press "<span class="primary">Start Game</span>" to begin.</p>`;
     setStatus(poolStatusLine());
     return;
   }
@@ -366,7 +366,7 @@ function renderMission() {
   if (!resolved && skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
   else if (answered && guardianOn && !current.reselecting) html += `<button id="changeAnswerBtn" class="back-btn" data-action="reselect">↺ Change answer</button>`;
   html += `<div class="util">`;
-  html += `<button id="nextBtn" class="primary" data-action="next-mission"${current.reselecting ? " disabled" : ""}>${resolved ? (retired && guardianOn ? "End run" : "Next Mission") : "Skip"} →</button>`;
+  html += `<button id="nextBtn" class="primary" data-action="next-mission"${current.reselecting ? " disabled" : ""}>${resolved ? (retired && guardianOn ? BUTTON_COPY.endRun : BUTTON_COPY.nextMission) : BUTTON_COPY.skip} →</button>`;
   html += `</div></div>`;
   const leftHint = !resolved && skippedStack.length ? `<kbd>←</kbd> return to skipped`
     : (answered && guardianOn && !current.reselecting ? `<kbd>←</kbd> change answer` : "");
@@ -470,14 +470,14 @@ function fullTrendsLines() {
   });
   const extra = extraRunStats();
   if (extra.regenFires) {
-    lines.push({ kind: "summary", text: `Life regen restored ${extra.livesReclaimed} ${extra.livesReclaimed === 1 ? "life" : "lives"}.` });
+    lines.push({ kind: "summary", text: `${DEBRIEF_COPY.regenRestored} ${extra.livesReclaimed} ${extra.livesReclaimed === 1 ? "life" : "lives"}.` });
   }
   if (extra.guardianSaves || extra.guardianStreakResets) {
-    const saveText = extra.guardianSaves ? `Guardian saved you from ${extra.guardianSaves} run-ending answer${extra.guardianSaves === 1 ? "" : "s"}` : "Guardian was used";
-    lines.push({ kind: "summary", text: `${saveText}, streak reset ${extra.guardianStreakResets} time${extra.guardianStreakResets === 1 ? "" : "s"}.` });
+    const saveText = extra.guardianSaves ? `${DEBRIEF_COPY.guardianSaved} ${extra.guardianSaves} ${DEBRIEF_COPY.runEndingAnswer}${extra.guardianSaves === 1 ? "" : "s"}` : DEBRIEF_COPY.guardianUsed;
+    lines.push({ kind: "summary", text: `${saveText}, ${DEBRIEF_COPY.streakReset} ${extra.guardianStreakResets} time${extra.guardianStreakResets === 1 ? "" : "s"}.` });
   }
   if (extra.timeouts) {
-    lines.push({ kind: "summary", text: `Challenge clock ran out ${extra.timeouts} time${extra.timeouts === 1 ? "" : "s"} this run.` });
+    lines.push({ kind: "summary", text: `${DEBRIEF_COPY.challengeClock} ${extra.timeouts} time${extra.timeouts === 1 ? "" : "s"} this run.` });
   }
   return lines;
 }
@@ -545,7 +545,7 @@ function drawReportCanvas(outcome, img) {
   const marginX = 20;
   const headerY = 50, avatarX = marginX;
   const remaining = Math.max(POOL_SIZE - spent, 0);
-  const rankText = retired ? "Burn Notice" : computeRank();
+  const rankText = retired ? RANK_NAMES.burned : computeRank();
   const failedCount = history.filter(h => h.timedOut).length;
   const missionsText = `${completedCount} completed · ${skippedCount} skipped` + (failedCount ? ` · ${failedCount} failed` : "");
   const runTimeText = formatElapsed(elapsedMs());
@@ -738,7 +738,7 @@ function closestAchievementProgress(stats) {
 }
 
 function nextRankUp(stats) {
-  const current = stats.aggregates.bestRank || "Recruit";
+  const current = stats.aggregates.bestRank || RANK_NAMES.recruit;
   const idx = RANK_ORDER.indexOf(current);
   if (idx === -1 || idx >= RANK_ORDER.length - 1) return null;
   return RANK_ORDER[idx + 1];
@@ -749,9 +749,9 @@ function retentionNudgeHtml() {
   const stats = loadStats();
   const lines = [];
   const nextRank = nextRankUp(stats);
-  if (nextRank) lines.push(`next rank: ${nextRank}`);
+  if (nextRank) lines.push(`${RECORDS_COPY.nudgeNextRank}${nextRank}`);
   const closest = closestAchievementProgress(stats);
-  if (closest) lines.push(`achievement progress: ${closest.name} (${closest.current}/${closest.target})`);
+  if (closest) lines.push(`${RECORDS_COPY.nudgeAchievement}${closest.name} (${closest.current}/${closest.target})`);
   if (!lines.length) return "";
   return `<div class="retention-nudge">${lines.map(l => `<p>${l}</p>`).join("")}</div>`;
 }
@@ -767,7 +767,7 @@ function runReportHtml() {
 }
 
 function worstCoverFlavor(blown) {
-  const cleanFallback = blown ? "No pattern to it. Just ran out of runway." : "Every cover held clean. No tells to speak of.";
+  const cleanFallback = blown ? DEBRIEF_COPY.cleanFallbackBlown : DEBRIEF_COPY.cleanFallbackComplete;
   const { stats, who } = computeCoverTrendStats();
   const TIER_RANK = { clean: 0, hairline: 1, crack: 2 };
   const worstTierOf = id => stats[id].crack > 0 ? "crack" : stats[id].hairline > 0 ? "hairline" : "clean";
@@ -892,6 +892,6 @@ function renderTally() {
   const sc = document.getElementById("score");
   if (sc) sc.innerHTML = `<span class="stat-label">Score</span> <b>${score}</b>`;
   const rk = document.getElementById("rank");
-  if (rk) rk.innerHTML = `<span class="stat-label">Rank</span> <b>${retired ? "Burn Notice" : computeRank()}</b>`;
+  if (rk) rk.innerHTML = `<span class="stat-label">Rank</span> <b>${retired ? RANK_NAMES.burned : computeRank()}</b>`;
 }
 
