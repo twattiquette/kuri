@@ -1,18 +1,16 @@
-# Publish only the game and the images it references. Everything else —
-# design docs, memory, tooling, unused art — stays local and is never pushed.
+# Pushy
 /*
 !.gitignore
 !index.html
 !playtest.html
 !data.js
-!copy.js
 !engine.js
 !mission-ui.js
 !whodunnit-ui.js
 !app-chrome.js
 !style.css
 
-# Under asset/, keep only the images the game actually loads.
+# Looky
 !/asset/
 /asset/*
 !/asset/img/
@@ -25,6 +23,8 @@
 !/asset/img/ee9k.png
 !/asset/img/eepi.png
 !/asset/img/eemc.png
+!/asset/img/not-the-only-one.png
+!/asset/img/Aybabtu.png
 
 # Self-hosted dyslexia-friendly font (opt-in toggle), SIL-OFL licensed.
 !/asset/fonts/
