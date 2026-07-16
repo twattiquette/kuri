@@ -769,18 +769,28 @@ function newMission() {
     const wasEgg = pendingEgg;
     pendingEgg = null;
     if (wasEgg.id === "pi") {
+      recordEgg("pi");
       startScenario(buildEggPi1());
       return;
     }
     if (wasEgg.id === "morse") {
+      recordEgg("morse");
+      const morseIds = ["EMC1", "EMC2", "EMC3"];
       const morseBuilders = [buildEggMorse1, buildEggMorse2, buildEggMorse3];
-      startScenario(morseBuilders[rollInt(3)]());
+      const stats = loadStats();
+      const found = stats.aggregates.eggsFound || [];
+      const unseen = morseIds.filter(id => found.indexOf(id) === -1);
+      const pick = unseen.length ? unseen[rollInt(unseen.length)] : morseIds[rollInt(3)];
+      const idx = morseIds.indexOf(pick);
+      recordEgg(pick);
+      startScenario(morseBuilders[idx]());
       return;
     }
   } else {
     const egg = SCORE_EGGS.find(e => !shownEggs[e.id] && (e.exact ? computeScore() === e.threshold : computeScore() > e.threshold));
     if (egg) {
       shownEggs[egg.id] = true;
+      if (egg.id === "over9000") recordEgg("over9000");
       pendingEgg = egg;
       renderMission();
       renderDevPanel();
@@ -869,6 +879,7 @@ function loadStats() {
         a.totalStreakResets += r.streakResets;
       });
     }
+    if (!Array.isArray(parsed.aggregates.eggsFound)) parsed.aggregates.eggsFound = [];
     if (parsed.aggregates.totalSkipped === undefined) {
       const a = parsed.aggregates;
       a.totalSkipped = 0; a.totalFailed = 0; a.timedRuns = 0; a.totalRunMs = 0; a.longestRunMs = 0; a.shortestRunMs = 0;
@@ -893,6 +904,16 @@ function saveStats(obj) {
   try { localStorage.setItem(STATS_KEY, JSON.stringify(obj)); } catch (e) {}
 }
 
+function recordEgg(id) {
+  const stats = loadStats();
+  if (!Array.isArray(stats.aggregates.eggsFound)) stats.aggregates.eggsFound = [];
+  if (stats.aggregates.eggsFound.indexOf(id) === -1) {
+    stats.aggregates.eggsFound.push(id);
+    saveStats(stats);
+    evaluateAchievements();
+  }
+}
+
 function rankMeets(rank, minRank) {
   if (!rank) return false;
   return RANK_ORDER.indexOf(rank) >= RANK_ORDER.indexOf(minRank);
@@ -900,30 +921,141 @@ function rankMeets(rank, minRank) {
 
 const ACHIEVEMENTS_ENABLED = true;
 const RECORDS_ENABLED = true;
+function completeRuns(stats) { return stats.runs.filter(r => r.outcome === "complete").length; }
+function maxSpineMissions(stats) {
+  const c = stats.aggregates.covers || {};
+  return Object.values(c).reduce((mx, v) => Math.max(mx, v.missions || 0), 0);
+}
+function allSpinesCovered(stats) {
+  const c = stats.aggregates.covers || {};
+  return Object.keys(COVERS).every(k => c[k] && c[k].missions > 0);
+}
+function hasEgg(stats, id) { return ((stats.aggregates.eggsFound || []).indexOf(id) !== -1); }
+
 const ACHIEVEMENTS = [
-  { id: "first_complete", ...ACHIEVEMENT_COPY.first_complete,
-    check: stats => stats.runs.some(r => r.outcome === "complete") },
-  { id: "rank_field_agent", ...ACHIEVEMENT_COPY.rank_field_agent,
+  { id: "field_clearance", ...ACHIEVEMENT_COPY.field_clearance,
     check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.fieldAgent) },
-  { id: "rank_operative", ...ACHIEVEMENT_COPY.rank_operative,
+  { id: "active_duty", ...ACHIEVEMENT_COPY.active_duty,
     check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.operative) },
-  { id: "rank_senior", ...ACHIEVEMENT_COPY.rank_senior,
+  { id: "handlers_trust", ...ACHIEVEMENT_COPY.handlers_trust,
     check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.seniorOperative) },
-  { id: "rank_master", ...ACHIEVEMENT_COPY.rank_master,
+  { id: "ghost_protocol", ...ACHIEVEMENT_COPY.ghost_protocol,
     check: stats => rankMeets(stats.aggregates.bestRank, RANK_NAMES.masterSpy) },
-  { id: "clean_sheet", ...ACHIEVEMENT_COPY.clean_sheet,
-    check: stats => stats.runs.some(r => r.outcome === "complete" && r.cracks === 0) },
-  { id: "survivor", ...ACHIEVEMENT_COPY.survivor,
-    check: stats => stats.runs.some(r => r.outcome === "complete" && r.livesUsed <= 3) },
-  { id: "veteran", ...ACHIEVEMENT_COPY.veteran,
-    check: stats => (stats.aggregates.totalRuns || 0) >= 10,
-    progress: stats => ({ current: stats.aggregates.totalRuns || 0, target: 10 }) },
-  { id: "centurion", ...ACHIEVEMENT_COPY.centurion,
+
+  { id: "cover_established", ...ACHIEVEMENT_COPY.cover_established,
+    check: stats => stats.runs.some(r => r.outcome === "complete") },
+  { id: "second_tour", ...ACHIEVEMENT_COPY.second_tour,
+    check: stats => completeRuns(stats) >= 3,
+    progress: stats => ({ current: completeRuns(stats), target: 3 }) },
+  { id: "deep_cover", ...ACHIEVEMENT_COPY.deep_cover,
+    check: stats => completeRuns(stats) >= 5,
+    progress: stats => ({ current: completeRuns(stats), target: 5 }) },
+  { id: "seasoned", ...ACHIEVEMENT_COPY.seasoned,
+    check: stats => completeRuns(stats) >= 15,
+    progress: stats => ({ current: completeRuns(stats), target: 15 }) },
+  { id: "lifer", ...ACHIEVEMENT_COPY.lifer,
+    check: stats => completeRuns(stats) >= 30,
+    progress: stats => ({ current: completeRuns(stats), target: 30 }) },
+
+  { id: "field_work", ...ACHIEVEMENT_COPY.field_work,
+    check: stats => (stats.aggregates.totalMissions || 0) >= 10,
+    progress: stats => ({ current: stats.aggregates.totalMissions || 0, target: 10 }) },
+  { id: "dossier_complete", ...ACHIEVEMENT_COPY.dossier_complete,
+    check: stats => (stats.aggregates.totalMissions || 0) >= 50,
+    progress: stats => ({ current: stats.aggregates.totalMissions || 0, target: 50 }) },
+  { id: "century", ...ACHIEVEMENT_COPY.century,
     check: stats => (stats.aggregates.totalMissions || 0) >= 100,
     progress: stats => ({ current: stats.aggregates.totalMissions || 0, target: 100 }) },
-  { id: "high_roller", ...ACHIEVEMENT_COPY.high_roller,
-    check: stats => (stats.aggregates.bestScore || 0) >= 40,
-    progress: stats => ({ current: stats.aggregates.bestScore || 0, target: 40 }) },
+  { id: "quartermaster", ...ACHIEVEMENT_COPY.quartermaster,
+    check: stats => (stats.aggregates.totalMissions || 0) >= 250,
+    progress: stats => ({ current: stats.aggregates.totalMissions || 0, target: 250 }) },
+
+  { id: "tradecraft", ...ACHIEVEMENT_COPY.tradecraft,
+    check: stats => (stats.aggregates.bestScore || 0) >= 1500,
+    progress: stats => ({ current: stats.aggregates.bestScore || 0, target: 1500 }) },
+  { id: "legend_status", ...ACHIEVEMENT_COPY.legend_status,
+    check: stats => (stats.aggregates.bestScore || 0) >= 2500,
+    progress: stats => ({ current: stats.aggregates.bestScore || 0, target: 2500 }) },
+  { id: "high_value_asset", ...ACHIEVEMENT_COPY.high_value_asset,
+    check: stats => (stats.aggregates.bestScore || 0) >= 3000,
+    progress: stats => ({ current: stats.aggregates.bestScore || 0, target: 3000 }) },
+  { id: "shadow_network", ...ACHIEVEMENT_COPY.shadow_network,
+    check: stats => (stats.aggregates.bestScore || 0) >= 3500,
+    progress: stats => ({ current: stats.aggregates.bestScore || 0, target: 3500 }) },
+  { id: "black_budget", ...ACHIEVEMENT_COPY.black_budget,
+    check: stats => (stats.aggregates.bestScore || 0) >= 4500,
+    progress: stats => ({ current: stats.aggregates.bestScore || 0, target: 4500 }) },
+
+  { id: "zero_exposure", ...ACHIEVEMENT_COPY.zero_exposure,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.cracks === 0) },
+  { id: "safe_house", ...ACHIEVEMENT_COPY.safe_house,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.livesUsed <= 3) },
+  { id: "by_the_book", ...ACHIEVEMENT_COPY.by_the_book,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.skipped === 0) },
+  { id: "iron_legend", ...ACHIEVEMENT_COPY.iron_legend,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.streakResets === 0) },
+  { id: "no_backup", ...ACHIEVEMENT_COPY.no_backup,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.guardianSaves === 0) },
+
+  { id: "counterintelligence", ...ACHIEVEMENT_COPY.counterintelligence,
+    check: stats => (stats.aggregates.whoCorrect || 0) >= 1 },
+  { id: "double_agent", ...ACHIEVEMENT_COPY.double_agent,
+    check: stats => (stats.aggregates.whoCorrect || 0) >= 5,
+    progress: stats => ({ current: stats.aggregates.whoCorrect || 0, target: 5 }) },
+  { id: "profiler", ...ACHIEVEMENT_COPY.profiler,
+    check: stats => (stats.aggregates.whoCorrect || 0) >= 15,
+    progress: stats => ({ current: stats.aggregates.whoCorrect || 0, target: 15 }) },
+  { id: "cold_read", ...ACHIEVEMENT_COPY.cold_read,
+    check: stats => (stats.aggregates.whoScenesCaught || 0) >= 10,
+    progress: stats => ({ current: stats.aggregates.whoScenesCaught || 0, target: 10 }) },
+
+  { id: "full_spectrum", ...ACHIEVEMENT_COPY.full_spectrum,
+    check: stats => allSpinesCovered(stats) },
+  { id: "specialist", ...ACHIEVEMENT_COPY.specialist,
+    check: stats => maxSpineMissions(stats) >= 10,
+    progress: stats => ({ current: maxSpineMissions(stats), target: 10 }) },
+  { id: "deep_specialist", ...ACHIEVEMENT_COPY.deep_specialist,
+    check: stats => maxSpineMissions(stats) >= 25,
+    progress: stats => ({ current: maxSpineMissions(stats), target: 25 }) },
+
+  { id: "irrational_asset", ...ACHIEVEMENT_COPY.irrational_asset,
+    check: stats => hasEgg(stats, "pi") },
+  { id: "signal_intercept", ...ACHIEVEMENT_COPY.signal_intercept,
+    check: stats => hasEgg(stats, "morse") },
+  { id: "off_the_grid", ...ACHIEVEMENT_COPY.off_the_grid,
+    check: stats => hasEgg(stats, "over9000") },
+  { id: "signal_directorate", ...ACHIEVEMENT_COPY.signal_directorate,
+    check: stats => hasEgg(stats, "EMC1") && hasEgg(stats, "EMC2") && hasEgg(stats, "EMC3"),
+    progress: stats => {
+      const found = (stats.aggregates.eggsFound || []);
+      return { current: ["EMC1","EMC2","EMC3"].filter(id => found.indexOf(id) !== -1).length, target: 3 };
+    } },
+
+  { id: "burn_notice", ...ACHIEVEMENT_COPY.burn_notice,
+    check: stats => stats.runs.some(r => r.outcome === "blown") },
+  { id: "guardian_angel", ...ACHIEVEMENT_COPY.guardian_angel,
+    check: stats => (stats.aggregates.totalGuardianSaves || 0) >= 10,
+    progress: stats => ({ current: stats.aggregates.totalGuardianSaves || 0, target: 10 }) },
+  { id: "nine_lives", ...ACHIEVEMENT_COPY.nine_lives,
+    check: stats => (stats.aggregates.totalLivesRegained || 0) >= 9,
+    progress: stats => ({ current: stats.aggregates.totalLivesRegained || 0, target: 9 }) },
+  { id: "adaptable", ...ACHIEVEMENT_COPY.adaptable,
+    check: stats => (stats.aggregates.totalAnswersChanged || 0) >= 10,
+    progress: stats => ({ current: stats.aggregates.totalAnswersChanged || 0, target: 10 }) },
+  { id: "weathered", ...ACHIEVEMENT_COPY.weathered,
+    check: stats => (stats.aggregates.totalFailed || 0) >= 5,
+    progress: stats => ({ current: stats.aggregates.totalFailed || 0, target: 5 }) },
+
+  { id: "rapid_deployment", ...ACHIEVEMENT_COPY.rapid_deployment,
+    check: stats => (stats.aggregates.timedRuns || 0) >= 1 },
+  { id: "blitz", ...ACHIEVEMENT_COPY.blitz,
+    check: stats => (stats.aggregates.totalTimedMissions || 0) >= 10,
+    progress: stats => ({ current: stats.aggregates.totalTimedMissions || 0, target: 10 }) },
+
+  { id: "clean_sweep", ...ACHIEVEMENT_COPY.clean_sweep,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.cracks === 0 && r.skipped === 0 && r.streakResets === 0) },
+  { id: "shadow_recruit", ...ACHIEVEMENT_COPY.shadow_recruit,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.rank === RANK_NAMES.masterSpy && r.cracks === 0) },
 ];
 
 function evaluateAchievements() {

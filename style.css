@@ -96,12 +96,15 @@
   .records-clear:hover, .records-clear:focus-visible, .records-clear[data-armed] { color: var(--accent); }
   .achievements { margin: 4px 0 10px; }
   .achievements-header { color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.85em; margin-bottom: 6px; }
-  .achievements-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .achievements-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
   .achievements-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9em; }
   .ach-name { font-weight: bold; }
   .ach-unlocked .ach-name { color: var(--accent); }
   .ach-locked { opacity: 0.5; }
   .ach-desc { color: var(--dim); }
+  .ach-cat-label { color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75em; font-weight: bold; margin: 10px 0 4px; }
+  .ach-cat-label:first-of-type { margin-top: 4px; }
+  .ach-cat-count { color: var(--dim); font-weight: normal; }
   h2.section-label { font-size: 0.78em; font-weight: normal; color: var(--dim); letter-spacing: 0.08em; margin: 0 0 4px; }
   .controls {
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
@@ -126,7 +129,7 @@
   @media (hover: none) { .kbd-hint { display: none; } }
   .disclaimer { margin-top: 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.8em; color: var(--dim); text-align: center; }
   .disclaimer p { margin: 0 0 6px; }
-  .disclaimer .licence { margin-top: 8px; font-size: 0.9em; }
+  .disclaimer .licence { color: inherit; margin-top: 8px; font-size: 0.9em; }
   .disclaimer .licence a { color: inherit; text-decoration: underline; }
   .credit-note { cursor: help; border-bottom: 1px dotted var(--dim); font-size: 0.85em; }
   #ipaPlay { color: inherit; }
@@ -204,6 +207,7 @@
   .stats .stat-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 20px; }
   .stats .lives { display: flex; align-items: center; gap: 5px; }
   .stats .lives .hearts { display: inline-flex; flex-wrap: wrap; gap: 2px; font-size: 1.05em; }
+  .stats .toggle-row { display: flex; flex-wrap: wrap; gap: 4px 10px; }
 
   .situation, .card .flavor, .suspect-line { font-size: 0.95em; }
   .situation { margin-bottom: 16px; }
@@ -299,7 +303,11 @@
   .tell-line { font-size: 0.85em; color: var(--dim); margin: 4px 0 4px 16px; }
   .read-bonus { font-size: 0.8em; color: var(--dim); font-family: ui-monospace, monospace; letter-spacing: 0.03em; }
 
+  @media (max-width: 900px) {
+    .achievements-list { grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 560px) {
+    .achievements-list { grid-template-columns: 1fr; }
     header > .collapse-bar { gap: 4px; }
     .stats-header { flex-wrap: nowrap; gap: 8px; }
     .avatar { height: 3.6em; }

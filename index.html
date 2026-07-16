@@ -4,9 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kuri</title>
-  <meta http-equiv="refresh" content="0; url=./playtest.html">
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #000;
+    }
+    a {
+      display: inline-block;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    .attribution {
+      color: #555;
+      font: 0.7rem/1.4 system-ui, sans-serif;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .attribution a {
+      color: #777;
+    }
+  </style>
 </head>
 <body>
-  <a href="./playtest.html">Play Kuri</a>
+  <a href="./playtest.html">
+    <img id="splash" alt="Kuri">
+  </a>
+  <p class="attribution" id="attr"></p>
+  <script>
+    var imgs = [
+      { src: "./asset/img/not-the-only-one.png" },
+      { src: "./asset/img/Aybabtu.png",
+        attr: 'Fair use — <a href="https://en.wikipedia.org/w/index.php?curid=21043148">source</a>' },
+    ];
+    var pick = imgs[Math.floor(Math.random() * imgs.length)];
+    document.getElementById("splash").src = pick.src;
+    if (pick.attr) document.getElementById("attr").innerHTML = pick.attr;
+  </script>
 </body>
 </html>

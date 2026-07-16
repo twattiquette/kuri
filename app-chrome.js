@@ -69,46 +69,55 @@ function fmtRunDuration(ms) {
   return `${Math.floor(total / 60)}m ${total % 60}s`;
 }
 
+function tierGlyph(t) { return t === "clean" ? "✓" : t === "crack" ? "✗" : "~"; }
+
 function debugHistoryLine(h) {
-  const tiers = h.rows && h.rows.length ? h.rows.map(r => `${r.name}=${r.tier}`).join(", ") : "";
+  const cover = h.cover.replace(/^The /, "");
+  const opt = h.optIdx != null ? `opt${h.optIdx + 1}` : "";
+  const text = truncPreview(h.optText, 16);
+  const secs = h.msTaken != null ? ` ${Math.round(h.msTaken / 1000)}s` : "";
+  let tiers = "";
+  if (h.rows && h.rows.length) {
+    tiers = " " + h.rows.map((r, i) => {
+      const g = tierGlyph(r.tier);
+      return i === 0 ? g : r.name.slice(0, 3) + ":" + g;
+    }).join("");
+  }
+  const who = h.correct != null ? " " + (h.correct ? "✓" : "✗") + (h.readEarned ? `+${h.readEarned}rd` : "") : "";
   const flags = [
-    h.regenApplied ? "regen" : "",
-    h.timedOut ? "timeout" : "",
-    h.answerChanged ? "changed" : "",
-    h.correct === true ? "hit" : (h.correct === false ? "miss" : ""),
-  ].filter(Boolean).join(" ");
-  const opt = h.optIdx != null ? `opt${h.optIdx + 1} "${truncPreview(h.optText)}"` : `"${truncPreview(h.optText)}"`;
-  const secs = h.msTaken != null ? ` · ${Math.round(h.msTaken / 1000)}s` : "";
-  return `${h.id} · ${h.cover} · ${opt}${secs}` +
-    (tiers ? ` · ${tiers}` : "") +
-    ` · lives lost ${h.total} · pool ${h.poolAfter}/${POOL_SIZE} · score ${h.score}` +
-    (flags ? ` · ${flags}` : "");
+    h.regenApplied ? "♻" : "",
+    h.timedOut ? "⏱" : "",
+    h.answerChanged ? "↺" : "",
+  ].filter(Boolean).join("");
+  return `${h.id} ${cover} ${opt}"${text}"${secs}${tiers}${who} -${h.total} ${h.poolAfter}/${POOL_SIZE} ${h.score}${flags ? " " + flags : ""}`;
 }
 
 function buildDebugLogMarkdown() {
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const lines = [];
-  const unlockedLevels = Object.keys(TIER_RANK_UNLOCK).filter(t => rankAtLeast(TIER_RANK_UNLOCK[t]));
-  lines.push(`kuri ${VERSION} · lives ${remaining}/${POOL_SIZE} · score ${computeScore()} · rank ${retired ? RANK_NAMES.burned : computeRank()} · unlocked: ${unlockedLevels.join(", ")}`);
-  lines.push(`missions ${completedCount} done · ${skippedCount} skipped · guardian ${guardianSaves} · resets ${guardianStreakResets}`);
+  const tierShort = { Easy: "E", Medium: "M", MediumFacet: "MF", Hard: "H" };
+  const unlockedLevels = Object.keys(TIER_RANK_UNLOCK).filter(t => rankAtLeast(TIER_RANK_UNLOCK[t])).map(t => tierShort[t] || t);
+  lines.push(`kuri ${VERSION} ♥${remaining}/${POOL_SIZE} score:${computeScore()} ${retired ? RANK_NAMES.burned : computeRank()} [${unlockedLevels.join(",")}]`);
+  lines.push(`${completedCount}done ${skippedCount}skip guardian:${guardianSaves} resets:${guardianStreakResets}`);
   const toggles = ["guardian", "regen", "endless", "challenge"]
     .map(k => {
       const on = document.getElementById(k + "Toggle").checked;
+      const mark = on ? "✓" : "✗";
       if (k === "challenge") {
         const dur = on && current ? challengeDurationMs(current.scenario) : null;
-        return `challenge:${on ? "on" + (dur ? " " + Math.round(dur / 1000) + "s" : "") : "off"}`;
+        return `c:${mark}${on && dur ? Math.round(dur / 1000) + "s" : ""}`;
       }
-      return `${k}:${on ? "on" : "off"}`;
+      return `${k[0]}:${mark}`;
     }).join(" ");
   const timeoutCount = history.filter(h => h.timedOut).length;
-  lines.push(`preset ${currentPreset} · ${toggles} · timeouts ${timeoutCount} · run ${fmtRunDuration(elapsedMs())}`);
+  lines.push(`${currentPreset} ${toggles} timeouts:${timeoutCount} ${fmtRunDuration(elapsedMs())}`);
   lines.push("");
   if (!history.length) {
-    lines.push("no missions completed yet this run");
-    return lines.join("\n");
+    lines.push("no missions yet");
+    return "```\n" + lines.join("\n") + "\n```";
   }
   history.slice().reverse().forEach(h => lines.push(debugHistoryLine(h)));
-  return lines.join("\n");
+  return "```\n" + lines.join("\n") + "\n```";
 }
 
 function formatRecordDate(epoch) {
@@ -117,20 +126,30 @@ function formatRecordDate(epoch) {
   return d.toISOString().slice(0, 10);
 }
 
-function renderAchievementsSection(stats) {
-  if (!ACHIEVEMENTS_ENABLED) return "";
+function renderCommendations() {
+  if (!ACHIEVEMENTS_ENABLED) return;
+  const panel = document.getElementById("commendationsPanel");
+  if (!panel) return;
+  const stats = loadStats();
   const unlocked = Array.isArray(stats.unlocked) ? stats.unlocked : [];
-  const items = ACHIEVEMENTS.map(a => {
-    const isUnlocked = unlocked.indexOf(a.id) !== -1;
-    return `<li class="${isUnlocked ? "ach-unlocked" : "ach-locked"}">` +
-      `<span class="ach-name">${a.name}</span>` +
-      `<span class="ach-desc">${a.desc}</span>` +
-      `</li>`;
-  }).join("");
-  return `<div class="achievements">` +
-    `<div class="achievements-header">${RECORDS_COPY.achievementsHeading} ${unlocked.length} of ${ACHIEVEMENTS.length}</div>` +
-    `<ul class="achievements-list">${items}</ul>` +
-    `</div>`;
+  let html = `<div class="achievements">` +
+    `<div class="achievements-header">${RECORDS_COPY.commendationsHeading} ${unlocked.length} / ${ACHIEVEMENTS.length}</div>`;
+  ACHIEVEMENT_CATS.forEach(cat => {
+    const group = ACHIEVEMENTS.filter(a => a.cat === cat.id);
+    if (!group.length) return;
+    const catUnlocked = group.filter(a => unlocked.indexOf(a.id) !== -1).length;
+    html += `<div class="ach-cat-label">${cat.label} <span class="ach-cat-count">${catUnlocked}/${group.length}</span></div>`;
+    html += `<ul class="achievements-list">`;
+    group.forEach(a => {
+      const isUnlocked = unlocked.indexOf(a.id) !== -1;
+      html += `<li class="${isUnlocked ? "ach-unlocked" : "ach-locked"}">` +
+        `<span class="ach-name">${a.name}</span>` +
+        `<span class="ach-desc">${a.desc}</span></li>`;
+    });
+    html += `</ul>`;
+  });
+  html += `</div>`;
+  panel.innerHTML = html;
 }
 
 function renderRecords() {
@@ -143,9 +162,9 @@ function renderRecords() {
     (stats.runs.length ? ` <button type="button" class="records-clear" data-action="records-clear">${RECORDS_COPY.clearBtn}</button>` : ``) +
     `</p>`;
   const heading = `<div class="achievements-header">${RECORDS_COPY.heading}</div>`;
-  const achievements = renderAchievementsSection(stats);
   if (!stats.runs.length) {
-    panel.innerHTML = `${heading}<p class="records-empty">${RECORDS_COPY.empty}</p>${achievements}${note}`;
+    panel.innerHTML = `${heading}<p class="records-empty">${RECORDS_COPY.empty}</p>${note}`;
+    renderCommendations();
     return;
   }
   const grp = (title, body) => `<div class="records-group"><div class="records-group-title">${title}</div><div class="records-group-stats stats">${body}</div></div>`;
@@ -213,7 +232,8 @@ function renderRecords() {
   const table = `<div class="records-table-wrap"><table class="records-table"><thead><tr>` +
     `<th>${RECORDS_COPY.th.date}</th><th>${RECORDS_COPY.th.outcome}</th><th>${RECORDS_COPY.th.lives}</th><th>${RECORDS_COPY.th.score}</th><th>${RECORDS_COPY.th.rank}</th><th>${RECORDS_COPY.th.runTime}</th><th>${RECORDS_COPY.th.missions}</th><th>${RECORDS_COPY.th.mode}</th>` +
     `</tr></thead><tbody>${rows}</tbody></table></div>`;
-  panel.innerHTML = heading + summary + table + achievements + note;
+  panel.innerHTML = heading + summary + table + note;
+  renderCommendations();
 }
 
 const THEME_KEY = "kuri-theme";
@@ -519,6 +539,12 @@ function init() {
   } else {
     document.getElementById("recordsToggleStats").classList.add("hidden");
     document.getElementById("recordsPanel").classList.add("hidden");
+  }
+  if (ACHIEVEMENTS_ENABLED) {
+    initCollapse("commendationsToggle", "commendationsPanel", RECORDS_COPY.commendationsHeading, { startHidden: true });
+  } else {
+    document.getElementById("commendationsToggle").classList.add("hidden");
+    document.getElementById("commendationsPanel").classList.add("hidden");
   }
   initCollapse("modeSettingsToggle", "modeSettingsPanel", "", { startHidden: true, staticLabel: true, persist: true });
   setInterval(gameTick, CHALLENGE_TICK_MS);

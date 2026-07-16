@@ -314,7 +314,7 @@ function renderMission() {
     return;
   }
   if (!current) {
-    area.innerHTML = `<p class="sub">Press "<span class="primary">Start Game</span>" to begin.</p>`;
+    area.innerHTML = `<p class="sub">Press "<strong class="primary">Start Game</strong>" to begin.</p>`;
     setStatus(poolStatusLine());
     return;
   }

@@ -61,7 +61,10 @@ changing an answer via guardian breaks the streak"><input type="checkbox" id="re
         <span class="stat" id="rank"></span>
         <span class="stat" id="runClock"></span>
       </div>
-      <button type="button" class="section-toggle" id="recordsToggleStats" aria-controls="recordsPanel" aria-expanded="false"></button>
+      <div class="toggle-row">
+        <button type="button" class="section-toggle" id="recordsToggleStats" aria-controls="recordsPanel" aria-expanded="false"></button>
+        <button type="button" class="section-toggle" id="commendationsToggle" aria-controls="commendationsPanel" aria-expanded="false"></button>
+      </div>
     </div>
   </div>
   <div id="announcer" class="sr-only" role="status"></div>
@@ -69,6 +72,7 @@ changing an answer via guardian breaks the streak"><input type="checkbox" id="re
   <div id="missionArea"></div>
 
   <div class="records-panel hidden" id="recordsPanel" aria-label="service record"></div>
+  <div class="records-panel hidden" id="commendationsPanel" aria-label="commendations"></div>
 
   <section class="dev-panel hidden" id="devPanel" aria-label="Developer panel">
     <h2 class="section-label">Developer info</h2>
@@ -83,12 +87,12 @@ changing an answer via guardian breaks the streak"><input type="checkbox" id="re
   <button type="button" class="section-toggle" id="footerToggle" aria-controls="footer" aria-expanded="true"></button>
 </div>
 <footer class="disclaimer" id="footer">
-  <p>kuri (pronounced "qree", <button type="button" id="ipaPlay" class="decode-toggle no-underline" data-action="ipa-play" aria-label="Play pronunciation">▶</button>/ˈkjʊri/) is fiction, built as a game. All scenarios invented for entertainment by someone with zero clearance for anything. Resemblance to real people or organisations? Failure of imagination. Nothing here is advice, and treating a spy game as tradecraft is a you problem. No warranties; play at own risk.</p>
+  <p>kuri (pronounced "qree", <button type="button" id="ipaPlay" class="decode-toggle no-underline" data-action="ipa-play" aria-label="Play pronunciation">▶</button>/ˈkjʊri/) is fiction, built as a game.  All scenarios invented for entertainment by someone with zero clearance for anything.  Resemblance to real people or organisations? Failure of imagination.  Nothing here is advice, and treating a spy game as tradecraft is a you problem.<br>No warranties; play at own risk.</p>
 
   <p class="licence">kuri © 2026<br>
 a solo human <a href="https://www.patreon.com/16348015/join" target="_blank" rel="noopener" title="support via patreon">hobby</a> + cat who insists on supervising + code slopped by Claude<sup class="credit-note" title="~62% asset, ~38% handler
 asset works the field, handler runs the op">&dagger;</sup><br>
-	Licence: <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></p>
+	Licence: <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener" title="copy but don't proffy">CC BY-NC-SA 4.0</a></p>
 </footer>
 
 <script src="data.js" defer></script>
