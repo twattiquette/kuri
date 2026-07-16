@@ -1,4 +1,4 @@
-const VERSION = "0.73.1-alpha";
+const VERSION = "0.73.2-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -531,7 +531,7 @@ const SCENARIOS = [
     imposterArchetype: "companyLine",
     randomiseImposter: true,
     imposterTell: "kept reaching for the rulebook the moment a rule was at stake",
-    situationIntro: "The network's courier turned up dead behind the freight office the station runs as a front; we'll leave the how off the page. Four candidates worked the office that week: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
+    situationIntro: "The network's courier turned up dead between the container stacks behind the freight office the station runs as a front; we'll leave the how off the page. It's a working yard, all diesel and tarpaulin: manifests taped to crates, forklifts before dawn, drivers leaning on the horn for their slot at the loading bay. Four candidates worked the office and the bay that week: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
     archetypeVariants: [
       { archetype: "fixer", imposterArchetype: "companyLine",
         imposterTell: "kept reaching for the rulebook the moment a rule was at stake" },
@@ -662,7 +662,7 @@ const SCENARIOS = [
     imposterArchetype: "fixer",
     randomiseImposter: true,
     imposterTell: "kept quietly improving on the terms the moment the result looked better",
-    situationIntro: "Someone re-cut a signed supply allocation behind the team's logistics desk, and a field crew hiked out to a cache that had quietly been promised elsewhere. No one owns up. Four candidates worked the desk that week: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
+    situationIntro: "Someone re-cut a signed supply allocation, and a field crew hiked two nights out to a cache that had quietly been promised elsewhere. The desk it crossed runs the line's field logistics: every cache, drop and courier run pinned to one wall map, kit going out faster than it ever comes back. No one owns up. Four candidates held that map the week it happened: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
     archetypeVariants: [
       { archetype: "broker", imposterArchetype: "fixer",
         imposterTell: "kept quietly improving on the terms the moment the result looked better" },
@@ -793,7 +793,7 @@ const SCENARIOS = [
     imposterArchetype: "contact",
     randomiseImposter: true,
     imposterTell: "couldn't keep from getting personally pulled in, close to whoever was hurting",
-    situationIntro: "A recovering asset's private address ended up in the wrong hands, leaked from the front the station runs as a clinic. Whoever let it slip was distracted, worn thin, not paying attention when it mattered — and the desk that week had four names on it: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" Watch them hold the desk through three hard moments; a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
+    situationIntro: "A recovering asset's private address ended up in the wrong hands, leaked from the front the station runs as a clinic. It's a real clinic, mind: an overnight ward, a waiting room full of coughs, a kettle that never quite cools. Whoever let it slip was distracted, worn thin, not paying attention when it mattered, and the desk that week had four names on it: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" Watch them hold the desk through three hard moments; a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
     archetypeVariants: [
       { archetype: "oldHand", imposterArchetype: "contact",
         imposterTell: "couldn't keep from getting personally pulled in, close to whoever was hurting" },
@@ -924,7 +924,7 @@ const SCENARIOS = [
     imposterArchetype: "broker",
     randomiseImposter: true,
     imposterTell: "kept checking the agreed terms before lifting a finger for anyone",
-    situationIntro: "A courier the network was moving arrived hurt at the night door of the contact point the team runs for after-hours handoffs, and spent hours alone on the step before anyone let them in; they pulled through, no thanks to whoever shut that door. Four candidates worked the night desk that week: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
+    situationIntro: "The contact point only properly exists after dark: one lamp over the night door, a cold corridor, a desk, and a short list of knocks that get answered. A courier the network was moving arrived hurt on that step and spent hours alone before anyone let them in; they pulled through, no thanks to whoever decided the knock didn't qualify. Four candidates worked the night desk that week: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
     archetypeVariants: [
       { archetype: "contact", imposterArchetype: "broker",
         imposterTell: "kept checking the agreed terms before lifting a finger for anyone" },
@@ -936,9 +936,9 @@ const SCENARIOS = [
         name: "Socks",
         beats: {
           contact: [
-            { clean: "Has the door open before the second knock; spare room, hot meal, the register can wait for morning.",
-              hairline: "Brings the courier in, but checks the after-hours page of the register before settling them anywhere.",
-              crack: "Won't take anyone in outside the check-in terms without a sign-off; offers the first room at eight tomorrow instead." },
+            { clean: "Signs for the package before the courier's finished asking, and finds it a safe shelf behind the desk till morning.",
+              hairline: "Takes the package in, but reads the handoff terms first to see what holding for another crew involves.",
+              crack: "Won't hold anything the handoff terms don't cover; offers the partner crew's proper drop slot at eight instead." },
             { clean: "Tells the keeper to come straight in, and waits at the desk with a room made up and the kettle on.",
               hairline: "Agrees to tonight, but reads the notice clause back over the phone first to be sure it's covered.",
               crack: "Points to the notice period in the keeping agreement and offers the earliest handover inside it." },
@@ -947,9 +947,9 @@ const SCENARIOS = [
               crack: "Checks the placement pack's support terms and sticks to them: two calls included, book the first." },
           ],
           broker: [
-            { clean: "Checks the night-door terms before anything else; the desk reopens at eight, and the first room's held.",
-              hairline: "Holds the check-in terms, but leaves a chair, a blanket and a thermos out on the step till morning.",
-              crack: "Helps the limping courier inside without a glance at the clock and worries about the terms tomorrow." },
+            { clean: "Checks the handoff terms before anything else; nothing's held for another crew, and the proper drop slot's at eight.",
+              hairline: "Holds the terms, but walks the courier to a dry porch and waits while they ring their own desk.",
+              crack: "Takes the package straight in and shelves it behind the desk; the terms can meet it in the morning." },
             { clean: "Reads the notice clause back to the keeper and books the earliest handover inside the notice period.",
               hairline: "Books the handover per the agreement, then stays on the line till the keeper's calm enough to sleep.",
               crack: "Waives the notice period; the guests come in tonight and the agreement can be tidied later." },
@@ -963,9 +963,9 @@ const SCENARIOS = [
         name: "Pickles",
         beats: {
           contact: [
-            { clean: "Helps the courier straight into the warm back room and settles them; the forms can catch up tomorrow.",
-              hairline: "Takes them in, though only after ringing the duty officer to confirm the after-hours arrangement covers it.",
-              crack: "Keeps the door shut and quotes the night-window terms: the desk reopens at eight, as agreed." },
+            { clean: "Takes the package with a smile, tucks it somewhere warm and dry, and tells the courier it's in good hands.",
+              hairline: "Takes it in, though only after ringing the duty officer to confirm holding for another crew is covered.",
+              crack: "Keeps the shelf empty and quotes the handoff terms: nothing held for outside crews, the drop slot opens at eight." },
             { clean: "Keeps the keeper on the line, talking them down, while making up a room for tonight.",
               hairline: "Takes the guests in tonight, though not before noting the handover sits outside the agreed notice.",
               crack: "Won't vary the handover terms over a phone call; the agreement says by appointment, so it's an appointment." },
@@ -974,9 +974,9 @@ const SCENARIOS = [
               crack: "Looks up what the placement pack promises and offers exactly that: the included support call, booked." },
           ],
           broker: [
-            { clean: "Quotes the night-window terms kindly and firmly: the desk reopens at eight, first room promised.",
-              hairline: "Keeps the courier outside the terms but not the cold; the porch bench gets a blanket and a check each hour.",
-              crack: "Opens the door at the first knock and has the courier fed and warm before the clock's even checked." },
+            { clean: "Reads the handoff terms back kindly and firmly: nothing gets held for another crew without a countersigned request.",
+              hairline: "Keeps the package outside the terms but not the weather; it waits boxed under the porch tarp with a note.",
+              crack: "Has the package signed in and shelved before the courier's finished explaining; the paperwork can wait for daylight." },
             { clean: "Holds the handover to the agreement as written; by appointment means by appointment, first one offered.",
               hairline: "Books the proper appointment, but talks the keeper through the night ahead until the crying stops.",
               crack: "Tells the keeper nothing's broken that tonight can't fix, and starts making up beds while still on the phone." },
@@ -990,9 +990,9 @@ const SCENARIOS = [
         name: "Bramble",
         beats: {
           contact: [
-            { clean: "Sits on the step with the courier, gets some soup into them, and helps them in wrapped in a spare coat.",
-              hairline: "Brings them in, then stops to log the out-of-hours arrival against the register before settling them.",
-              crack: "Checks what the night-door terms actually allow before anything else; until that's squared, the courier waits." },
+            { clean: "Waves the courier in out of the cold, brews something hot, and stows the package personally where it'll stay safe.",
+              hairline: "Takes the package in, then stops to log it against the register so the holding's on the record.",
+              crack: "Checks what the handoff terms actually allow before touching it; until that's squared, the package stays with the courier." },
             { clean: "Offers to drive out and collect the guests tonight rather than have the keeper struggle in.",
               hairline: "Says yes to tonight, but spends the first minutes checking whose sign-off a same-day handover needs.",
               crack: "Holds the keeper to the agreement as written and books the handover for the next open appointment." },
@@ -1001,9 +1001,9 @@ const SCENARIOS = [
               crack: "Confirms what was agreed at placement and won't go beyond it without the duty officer's say-so." },
           ],
           broker: [
-            { clean: "Won't vary the night-door terms solo; the courier's listed for the eight o'clock slot and the duty officer's told.",
-              hairline: "Follows the terms to the letter, but sits out on the step with the courier until the shift ends.",
-              crack: "Wraps the courier in an old coat and brings them in; whoever wrote the terms never limped up a path at midnight." },
+            { clean: "Checks whose sign-off holding for another crew needs, finds none available tonight, and books the package into the morning drop.",
+              hairline: "Follows the terms to the letter, but offers to walk the courier halfway back to their own point.",
+              crack: "Stows the package and offers to run it across town personally at first light; whoever wrote the terms never carried one at midnight." },
             { clean: "Checks whose sign-off a same-day handover needs, finds none available, and books the next open appointment.",
               hairline: "Books the appointment as the agreement asks, then offers to drop spare bedding round meanwhile.",
               crack: "Gets in the van; the guests are collected within the hour and the keeper tucked up by ten." },
@@ -1017,9 +1017,9 @@ const SCENARIOS = [
         name: "Ginger",
         beats: {
           contact: [
-            { clean: "Props the night door wide, warms some dinner, and stays by the fire till the courier settles.",
-              hairline: "Brings them in quickly, but circles back twice to whether an after-hours arrival needed a duty officer's OK.",
-              crack: "Rings the on-call duty officer to confirm the terms allow an after-hours arrival; no confirmation, no entry." },
+            { clean: "Takes the package with one hand and puts the kettle on with the other; the courier leaves warm and travelling lighter.",
+              hairline: "Takes it in quickly, but circles back twice to whether holding for another crew needed the duty officer's OK.",
+              crack: "Rings the on-call duty officer about holding for an outside crew; no confirmation, no shelf." },
             { clean: "Tells the keeper to bring the guests now, and stays past shift so someone's there to meet them.",
               hairline: "Meets them tonight, but brings the keeping agreement to the handover to square the clause on the spot.",
               crack: "Sympathises, then holds the line: handovers run by appointment under the agreement, and tonight isn't one." },
@@ -1028,9 +1028,9 @@ const SCENARIOS = [
               crack: "Reads the placement terms back to them and keeps the help inside exactly what was signed." },
           ],
           broker: [
-            { clean: "Checks the after-hours terms twice, finds no allowance, and lists the courier first for the morning.",
-              hairline: "Keeps to the check-in terms, but stands at the door talking softly with the courier until the shift's done.",
-              crack: "Has the door open and dinner warming before the courier's finished limping up the path." },
+            { clean: "Checks the handoff terms twice, finds no allowance for outside crews, and lists the package first for the morning drop.",
+              hairline: "Keeps to the terms, but stands at the door mapping the courier's fastest safe route home.",
+              crack: "Has the package shelved and the courier fed before the terms get so much as a glance." },
             { clean: "Brings the keeping agreement to the phone and walks the keeper through what the notice clause allows.",
               hairline: "Holds the clause, but promises to ring the keeper every morning until the appointment comes round.",
               crack: "Says bring them now, stays hours past shift, and meets the keeper at the door with tea going." },
@@ -1042,11 +1042,11 @@ const SCENARIOS = [
       },
     ],
     beatPrompts: [
-      "A courier with a bad leg turns up at the night door, ten minutes after the desk has closed.",
+      "A courier from a partner crew knocks after hours, asking the desk to hold a sealed package overnight; the handoff terms don't cover keeping anything for another crew.",
       "An overwhelmed safehouse keeper rings in tears, wanting to hand back two placed guests tonight.",
       "Last week's host is back at the desk, frantic: the new guest's shut in the room and won't eat.",
     ],
-    sceneTags: ["the night-door courier", "the tearful keeper call", "the frantic host"],
+    sceneTags: ["the overnight package", "the tearful keeper call", "the frantic host"],
   },
   {
     id: "WHO5", mode: "whodunnit", minTier: "Medium",
@@ -1055,7 +1055,7 @@ const SCENARIOS = [
     imposterArchetype: "oldHand",
     randomiseImposter: true,
     imposterTell: "kept trusting old habit over the briefed steps",
-    situationIntro: "Half the waystation the team runs for moving people through the line is down with the same heavy cold, traced back to a new arrival who looked perfectly fine and got walked straight onto the main floor, skipping the mandatory 48-hour stay in the intake room. Now there's talk of a station review, which is attention the operation can't afford. Four candidates ran the desk that week: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
+    situationIntro: "The waystation the team runs exists to keep people moving through the line: bunks by the dozen, an intake room off the hall, nobody meant to stay past a handful of nights. Every arrival does a mandatory 48 hours in intake first; that rule is what keeps a full house standing. Except half the station is now down with the same heavy cold, traced back to a new arrival who looked perfectly fine and got walked straight onto the main floor. There's talk of a station review, which is attention the operation can't afford. Four candidates ran the desk that week: {names}.\n\nThe imposter is hiding behind a profile: a single card of exactly the sort of cat they swear they are, handed over as their cover. \"That's me, that's how I work.\" But a profile only holds if you actually live it, and it won't survive a close read on anyone who's just borrowed it.",
     archetypeVariants: [
       { archetype: "companyLine", imposterArchetype: "oldHand",
         imposterTell: "kept trusting old habit over the briefed steps" },
@@ -1067,9 +1067,9 @@ const SCENARIOS = [
         name: "Rocket",
         beats: {
           companyLine: [
-            { clean: "Walks the newcomer straight to the intake room and starts the 48-hour clock; the sheet says every arrival, no exceptions.",
-              hairline: "Books the newcomer in by the sheet, but lets them hold court at the front desk while the intake room gets a slow set-up.",
-              crack: "Looks the newcomer over with a practised eye, calls them sound, and settles them onto the main floor like always." },
+            { clean: "Holds the van at the door and rings the depot for a docket; nothing unloads until there's paper to sign against.",
+              hairline: "Chases the docket by phone as the sheet asks, but lets the driver stage boxes by the door in the meantime.",
+              crack: "Walks the load with a practised eye, counts it against last week's order from memory, and waves it in; paper can follow." },
             { clean: "Leaves the kit store locked and waits; the ledger wants two signatures and the second keyholder isn't here.",
               hairline: "Lays every requested item out ready at the counter, holding the store one signature short of issuing.",
               crack: "Issues the lot alone, by eye and long habit, and leaves the ledger to catch up in the morning." },
@@ -1078,9 +1078,9 @@ const SCENARIOS = [
               crack: "Locks up by feel the way it's been done for years, every latch checked from memory, the new list untouched on its hook." },
           ],
           oldHand: [
-            { clean: "Gives the newcomer a slow, practised once-over, head to toe, calls them sound, and settles them onto the main floor without fuss.",
-              hairline: "Settles the newcomer by feel, though the intake sheet gets fetched afterwards and filled in neatly for the record.",
-              crack: "Marches the newcomer straight to the intake room and starts the 48-hour clock; the sheet says every arrival, and the sheet decides." },
+            { clean: "Knows the order by heart, checks the load off box by box against it, and has the van empty before the kettle's boiled.",
+              hairline: "Unloads on experience, though a makeshift docket gets written up for the driver to sign before the van leaves.",
+              crack: "Leaves the van sealed at the door and rings the depot for a proper docket; no paper, no unload, and the sheet decides." },
             { clean: "Works the counter solo, unhurried, each issue weighed by years of the same store, ledger squared when the keyholder lands.",
               hairline: "Starts issuing from experience, then stalls halfway, suddenly wanting the second signature before the sensitive kit.",
               crack: "Locks the store where it stands; the ledger wants two signatures, one keyholder's out, so nothing moves till the rule's satisfied." },
@@ -1094,9 +1094,9 @@ const SCENARIOS = [
         name: "Basil",
         beats: {
           companyLine: [
-            { clean: "Reads the intake rule out to the protesting relatives, then walks the newcomer through for the full stay.",
-              hairline: "Follows the intake rule, though only after weighing up out loud whether such a bright-eyed arrival really needs it.",
-              crack: "Skips the intake room for an old-fashioned head-to-toe check and a spot on the main floor; experience says this one's fine." },
+            { clean: "Reads the receiving procedure to the impatient driver, rings the depot for a docket number, and only then lets a box move.",
+              hairline: "Follows the receiving procedure, though only after weighing up out loud whether a load this obviously right really needs it.",
+              crack: "Sizes the load up from years of the same order, calls it right, and has it shelved before the depot would've picked up the phone." },
             { clean: "Rings the duty signer twice, then shelves the round; no countersign, no doses, as briefed.",
               hairline: "Holds the round, but drafts the whole chart in pencil so it only needs the signature dropped in.",
               crack: "Doses the lot steady-handed from memory of last week's chart and squares the signatures whenever the signer lands." },
@@ -1105,9 +1105,9 @@ const SCENARIOS = [
               crack: "Does the rounds the old way, unhurried, by a routine worn smooth over years; the list stays on the nail." },
           ],
           oldHand: [
-            { clean: "Trusts a thorough head-to-toe and a lifetime of arrivals; the bright-eyed newcomer gets a warm spot on the main floor.",
-              hairline: "Calls the newcomer sound on experience, but keeps them apart from the frailest guests overnight, just to be comfortable.",
-              crack: "Reads the intake rule out loud to anyone arguing and walks the newcomer through for the full 48 hours, no debate." },
+            { clean: "Trusts a lifetime of deliveries; one look down the van says it's the usual order, so the usual order gets unloaded.",
+              hairline: "Unloads by eye, but sets the unfamiliar boxes aside unopened until someone can vouch for them.",
+              crack: "Reads the receiving procedure out loud to anyone arguing; the van waits sealed while the depot's rung twice for a docket." },
             { clean: "Runs the treatment round from a memory that's never yet been wrong, calm as ever, and parks the signature question for morning.",
               hairline: "Preps the whole round by practised hand, then leaves the strongest three doses drawn but ungiven for the countersign.",
               crack: "Shelves the entire round and rings the duty signer twice; no countersign, no doses, exactly as the briefing says." },
@@ -1121,9 +1121,9 @@ const SCENARIOS = [
         name: "Cleo",
         beats: {
           companyLine: [
-            { clean: "Signs the newcomer into the intake log first and settles them second; that's the order the sheet gives.",
-              hairline: "Books the newcomer into the intake room as briefed, though not before a long once-over at the desk that the sheet never asked for.",
-              crack: "Waves the newcomer through to the main floor after a calm, thorough check of the old school; a spare room won't teach anything a good look didn't." },
+            { clean: "Logs the van's arrival first and unloads second, once the depot's confirmed the order line by line; that's the order the sheet gives.",
+              hairline: "Runs the receiving procedure as briefed, though not before a long once-over at the tailgate that the sheet never asked for.",
+              crack: "Counts the load off by eye, the same order as every week for years, and signs the driver away with a nod." },
             { clean: "Leaves the trolley locked and posts a note on the round sheet: resumes when the second signer's back.",
               hairline: "Walks the round without dosing, jotting what each room needs so the real pass takes five minutes once countersigned.",
               crack: "Quietly works the round solo, hands steady, doses exact from years of the same trolley, chart squared after." },
@@ -1132,9 +1132,9 @@ const SCENARIOS = [
               crack: "Closes the building on instinct, the same circuit as every night for years, and signs the list off in one go at the door." },
           ],
           oldHand: [
-            { clean: "Checks the newcomer over the old way, unrushed and thorough, and finds them a sunny corner of the main floor; the look was the screening.",
-              hairline: "Trusts the seasoned once-over, but jots the newcomer's details into the intake log anyway, in case anyone asks.",
-              crack: "Signs the newcomer into the intake log before touching anything else; the sheet gives an order, and the order gets followed." },
+            { clean: "Checks the load the old way, crate by crate against memory, and has it stacked where it lives before anyone's asked.",
+              hairline: "Unloads on the seasoned count, but jots the tally into the receiving log anyway, in case anyone asks.",
+              crack: "Logs the van's arrival before touching a single crate; the sheet gives an order, and the order gets followed." },
             { clean: "Takes the trolley round alone at the usual easy pace, every measure second nature, and writes the chart up fair afterwards.",
               hairline: "Doses the routine rooms from habit, but holds the two tricky charts back until a second pair of eyes exists.",
               crack: "Padlocks the trolley and pins a notice to the round sheet: two signatures or no doses, resuming when the signer returns." },
@@ -1148,9 +1148,9 @@ const SCENARIOS = [
         name: "Tilley",
         beats: {
           companyLine: [
-            { clean: "Apologises to the newcomer's relatives, then follows the intake sheet anyway; the settling stay first, sympathy after.",
-              hairline: "Books the newcomer into the intake room by the book, but trims the paperwork down to the parts that seem to matter.",
-              crack: "Gives the newcomer one seasoned look, pronounces them well, and sets them up on the main floor without breaking stride." },
+            { clean: "Apologises to the driver, then holds the load at the door anyway; the receiving sheet wants a docket, so a docket gets found.",
+              hairline: "Holds the load by the book, but lines the trolleys up ready so unloading starts the second the docket clears.",
+              crack: "Gives the van one seasoned look, calls the order right, and has it unloaded without breaking stride." },
             { clean: "Holds every dose until the countersign; a round done late still counts, a round done wrong doesn't.",
               hairline: "Holds the doses, though the trolley's already wheeled out and half set up before the signature exists.",
               crack: "Works the trolley alone at an easy, practised pace, every dose from memory, and back-fills the chart at the end." },
@@ -1159,9 +1159,9 @@ const SCENARIOS = [
               crack: "Ignores the list and shuts the place down the way years on the desk taught: smooth, quiet, finished in half the time." },
           ],
           oldHand: [
-            { clean: "Sizes the newcomer up in the time it takes to say hello, finds nothing wrong, and settles them among the others without a second thought.",
-              hairline: "Judges the newcomer well on experience, though the intake room gets aired and readied, just in case the call's wrong.",
-              crack: "Points the relatives to the intake sheet with an apologetic shrug; every arrival does the 48 hours, and this one's no different." },
+            { clean: "Sizes the load up in the time it takes to greet the driver, finds it the usual, and starts carrying boxes.",
+              hairline: "Unloads on experience, though a quick tally gets chalked up for the depot to confirm later, just in case the call's wrong.",
+              crack: "Points the driver to the receiving sheet with an apologetic shrug; no docket, no unload, and the depot gets rung." },
             { clean: "Rolls the trolley out and does the round the way it's been done for years, unbothered, filling the chart in at the last room.",
               hairline: "Runs the round from memory, but leaves a written note against each dose so the signer can countersign the lot at once.",
               crack: "Wheels the trolley back to the cupboard; the chart wants two signatures on every dose, so the round waits, full stop." },
@@ -1173,11 +1173,11 @@ const SCENARIOS = [
       },
     ],
     beatPrompts: [
-      "Another new arrival shows up looking just as healthy as the last one did — no cough, no fever, nothing wrong that anyone can see. The 48-hour intake rule doesn't care how they look.",
+      "The weekly supply van turns up a day early with a relief driver and no delivery docket to sign against.",
       "The medicine round now needs a second signature on every dose, and the only other signer is out on a call.",
       "This week's new closing checklist runs twice as long as the old routine everyone knows by heart.",
     ],
-    sceneTags: ["the intake rule", "the second signature", "the new checklist"],
+    sceneTags: ["the docketless delivery", "the second signature", "the new checklist"],
   },
 ];
 

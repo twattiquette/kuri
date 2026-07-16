@@ -9,7 +9,8 @@ function formatClock(ms) {
 
 function renderRunClock() {
   const el = document.getElementById("runClock");
-  if (el) el.innerHTML = `<span class="stat-label">Run time</span> <b>${formatClock(elapsedMs())}</b>`;
+  if (!el || trainingComplete) return;
+  el.innerHTML = `<span class="stat-label">Run time</span> <b>${formatClock(elapsedMs())}</b>`;
 }
 
 function renderTimeoutDebrief() {
@@ -542,12 +543,14 @@ function drawReportCanvas(outcome, img) {
   const ctx = canvas.getContext("2d");
 
   const marginX = 20;
-  const avatarSize = 72, headerY = 50, avatarX = marginX, statsX = avatarX + avatarSize + 14;
+  const headerY = 50, avatarX = marginX;
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const rankText = retired ? "Burn Notice" : computeRank();
-  const missionsText = `${completedCount} completed · ${skippedCount} skipped`;
+  const failedCount = history.filter(h => h.timedOut).length;
+  const missionsText = `${completedCount} completed · ${skippedCount} skipped` + (failedCount ? ` · ${failedCount} failed` : "");
   const runTimeText = formatElapsed(elapsedMs());
   const livesValueText = `${remaining} / ${POOL_SIZE}`;
+  const livesIcons = Array.from({ length: POOL_SIZE }, (_, i) => i >= POOL_SIZE - spent ? "💀" : "🐱").join("");
   const scoreText = `${computeScore()}`;
   const titleText = "kuri · spy training report";
   const bannerText = blown ? "COVER BLOWN" : "TRAINING COMPLETE";
@@ -559,7 +562,8 @@ function drawReportCanvas(outcome, img) {
     return labelW + 6 + ctx.measureText(value).width;
   }
 
-  const livesRowW = Math.max(statWidth("LIVES", livesValueText), POOL_SIZE * 15);
+  const livesFullText = `${livesValueText}  ${livesIcons}`;
+  const livesRowW = statWidth("LIVES", livesFullText);
   const missionsRowW = statWidth("MISSIONS", missionsText);
   const runTimeRowW = statWidth("RUN TIME", runTimeText);
   const scoreW = statWidth("SCORE", scoreText);
@@ -584,6 +588,12 @@ function drawReportCanvas(outcome, img) {
   ctx.font = "11px sans-serif";
   const footerW = ctx.measureText(footerText).width;
 
+  const statsRowCount = 4;
+  const statsRowH = 20;
+  const statsBlockH = statsRowCount * statsRowH;
+  const avatarSize = statsBlockH;
+  const statsX = avatarX + avatarSize + 14;
+
   const contentRight = Math.max(
     statsX + livesRowW,
     statsX + missionsRowW,
@@ -606,7 +616,7 @@ function drawReportCanvas(outcome, img) {
   const lineHeights = lines.map(l => l.kind === "summary" ? 24 : 20);
   const breakdownH = lineHeights.reduce((a, b) => a + b, 0);
 
-  const bannerY = headerY + avatarSize + 24;
+  const bannerY = headerY + avatarSize + 34;
   const proseY = bannerY + 34;
   const breakdownY = proseY + proseLines.length * proseLineH + 14;
   const H = Math.max(500, breakdownY + breakdownH + 50);
@@ -633,19 +643,12 @@ function drawReportCanvas(outcome, img) {
 
   ctx.textAlign = "left";
   let sy = headerY + 2;
-  drawStatLine(ctx, "LIVES", livesValueText, statsX, sy, pal);
-  sy += 20;
-  ctx.font = "13px sans-serif";
-  let hx = statsX;
-  for (let i = 0; i < POOL_SIZE; i++) {
-    ctx.fillText(i >= POOL_SIZE - spent ? "💀" : "🐱", hx, sy);
-    hx += 15;
-  }
-  sy += 22;
+  drawStatLine(ctx, "LIVES", livesFullText, statsX, sy, pal);
+  sy += statsRowH;
   drawStatLine(ctx, "MISSIONS", missionsText, statsX, sy, pal);
-  sy += 22;
+  sy += statsRowH;
   drawStatLine(ctx, "RUN TIME", runTimeText, statsX, sy, pal);
-  sy += 22;
+  sy += statsRowH;
   const afterScore = drawStatLine(ctx, "SCORE", scoreText, statsX, sy, pal);
   drawStatLine(ctx, "RANK", rankText, afterScore + 20, sy, pal);
 
@@ -760,8 +763,7 @@ function formatElapsed(ms) {
 }
 
 function runReportHtml() {
-  const elapsed = `<p class="run-elapsed">run time: ${formatElapsed(elapsedMs())}</p>`;
-  return `<div class="run-report">${coverTrendsHtml()}${elapsed}</div>${retentionNudgeHtml()}`;
+  return `<div class="run-report">${coverTrendsHtml()}</div>${retentionNudgeHtml()}`;
 }
 
 function worstCoverFlavor(blown) {

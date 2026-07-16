@@ -354,6 +354,10 @@ function onDelegatedChange(e) {
       checkPresetStillMatches();
       break;
     case "regen":
+      renderMission();
+      refreshToggleIcons();
+      checkPresetStillMatches();
+      break;
     case "endless":
       refreshToggleIcons();
       checkPresetStillMatches();
