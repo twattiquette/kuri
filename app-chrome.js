@@ -129,7 +129,7 @@ function renderCommendations() {
   const catsOpen = !(window.matchMedia && window.matchMedia("(max-width: 560px)").matches);
   let html = `<div class="achievements">` +
     `<div class="achievements-header">${RECORDS_COPY.commendationsHeading} ${unlocked.length} / ${ACHIEVEMENTS.length}` +
-    ` <button type="button" class="ach-toggle-all" data-action="ach-toggle-all" aria-expanded="${catsOpen}">${catsOpen ? RECORDS_COPY.collapseAll : RECORDS_COPY.expandAll}</button></div>`;
+    ` <button type="button" class="toggle-all" data-action="toggle-all" aria-expanded="${catsOpen}">${catsOpen ? RECORDS_COPY.collapseAll : RECORDS_COPY.expandAll}</button></div>`;
   ACHIEVEMENT_CATS.forEach(cat => {
     const group = ACHIEVEMENTS.filter(a => a.cat === cat.id);
     if (!group.length) return;
@@ -164,7 +164,9 @@ function renderRecords() {
     renderCommendations();
     return;
   }
-  const grp = (title, body) => `<div class="records-group"><div class="records-group-title">${title}</div><div class="records-group-stats stats">${body}</div></div>`;
+  const recsOpen = !(window.matchMedia && window.matchMedia("(max-width: 560px)").matches);
+  const openAttr = recsOpen ? " open" : "";
+  const grp = (title, body) => `<details class="records-group"${openAttr}><summary class="records-group-title">${title}</summary><div class="records-group-stats stats">${body}</div></details>`;
   const stat = (label, value, tip) => `<span class="stat"${tip ? ` title="${tip}"` : ""}><span class="stat-label">${label}</span> <b>${value}</b></span>`;
   const overallGrp = grp(RECORDS_COPY.groups.overall,
     stat(RECORDS_COPY.stats.bestScore, agg.bestScore || 0) +
@@ -227,10 +229,12 @@ function renderRecords() {
       modeCell +
       `</tr>`;
   }).join("");
-  const table = `<div class="records-table-wrap"><table class="records-table"><thead><tr>` +
+  const table = `<details class="records-history"${openAttr}><summary class="records-group-title">${RECORDS_COPY.groups.history}</summary>` +
+    `<div class="records-table-wrap"><table class="records-table"><thead><tr>` +
     `<th>${RECORDS_COPY.th.date}</th><th>${RECORDS_COPY.th.outcome}</th><th>${RECORDS_COPY.th.lives}</th><th>${RECORDS_COPY.th.score}</th><th>${RECORDS_COPY.th.rank}</th><th>${RECORDS_COPY.th.runTime}</th><th>${RECORDS_COPY.th.missions}</th><th>${RECORDS_COPY.th.mode}</th>` +
-    `</tr></thead><tbody>${rows}</tbody></table></div>`;
-  panel.innerHTML = heading + summary + table + note;
+    `</tr></thead><tbody>${rows}</tbody></table></div></details>`;
+  const toggleAll = ` <button type="button" class="toggle-all" data-action="toggle-all" aria-expanded="${recsOpen}">${recsOpen ? RECORDS_COPY.collapseAll : RECORDS_COPY.expandAll}</button>`;
+  panel.innerHTML = `<div class="achievements-header">${RECORDS_COPY.heading}${toggleAll}</div>` + summary + table + note;
   renderCommendations();
 }
 
@@ -394,8 +398,10 @@ function onDelegatedClick(e) {
       }
       break;
     }
-    case "ach-toggle-all": {
-      const dets = Array.from(document.querySelectorAll("#commendationsPanel details.ach-cat"));
+    case "toggle-all": {
+      const panel = el.closest(".records-panel");
+      if (!panel) break;
+      const dets = Array.from(panel.querySelectorAll("details"));
       const anyOpen = dets.some(d => d.open);
       dets.forEach(d => { d.open = !anyOpen; });
       el.textContent = anyOpen ? RECORDS_COPY.expandAll : RECORDS_COPY.collapseAll;

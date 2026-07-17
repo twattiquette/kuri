@@ -1,4 +1,4 @@
-const VERSION = "0.75.9-alpha";
+const VERSION = "0.75.10-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1359,6 +1359,7 @@ const RECORDS_COPY = {
     missions: "missions",
     covers: "covers",
     modes: "modes",
+    history: "recent runs",
   },
   stats: {
     bestScore: "Best score",
