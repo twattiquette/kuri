@@ -260,6 +260,11 @@
   .decode-toggle.no-underline .morse-word:hover { text-decoration: underline; }
   .morse-label { color: var(--ink); cursor: default; }
   .dev-toggle { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+  .copy-btn {
+    background: none; border: none; cursor: pointer; font-size: 0.85em;
+    padding: 0 2px; vertical-align: middle; opacity: 0.7;
+  }
+  .copy-btn:hover { opacity: 1; }
   .debug-log-output {
     display: block; width: 100%; min-height: 160px; margin-top: 8px;
     font-family: ui-monospace, monospace; font-size: 0.85em;

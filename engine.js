@@ -226,8 +226,8 @@ function handleRechooseGuard(idx) {
       return false;
     }
     if (retired && guardianOn) {
-      if (!current.reselecting) guardianSaves++;
-      guardianStreakResets++;
+      if (!current.reselecting && !current.guardianSavedThisMission) { guardianSaves++; current.guardianSavedThisMission = true; }
+      if (!current.streakResetThisMission) { guardianStreakResets++; current.streakResetThisMission = true; }
       current.withdrawnIdx = current.chosen;
       goBack(true);
     }
@@ -257,6 +257,8 @@ function commitChoice(total, clean, timedOut, entry) {
   entry.poolAfter = Math.min(spent, POOL_SIZE);
   entry.regenApplied = regenJustFired;
   entry.timedOut = timedOut;
+  entry.streakAfter = cleanStreak;
+  entry.guardianUsed = current && current.guardianSavedThisMission;
   history.push(entry);
   history[history.length - 1].score = computeScore();
   if (retired) recordRunEnd("blown");
@@ -275,7 +277,7 @@ function beginAnswer(idx) {
 function applyAnswerTransition(rechoose, guardianReselect, idx) {
   if (rechoose) {
     undoRechoose();
-    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; answersChanged++; }
+    if (guardianReselect) { cleanStreak = 0; if (!current.streakResetThisMission) { guardianStreakResets++; current.streakResetThisMission = true; } if (!current.answerChangedThisMission) { answersChanged++; current.answerChangedThisMission = true; } }
     current.reselecting = false;
     return false;
   }
@@ -372,7 +374,7 @@ function goBack(breakStreak) {
 function startReselect() {
   const guardianOn = toggleOn("guardian");
   if (!current || current.chosen === null || !guardianOn) return;
-  if (retired) { guardianSaves++; undoRecordedRun(); }
+  if (retired) { if (!current.guardianSavedThisMission) { guardianSaves++; current.guardianSavedThisMission = true; } undoRecordedRun(); }
   current.reselecting = true;
   announce("Choose a different answer. Your streak will reset.");
   renderMission();
@@ -435,7 +437,7 @@ let lastWithdrawAt = 0;
 function noteFreshAnswer(idx) {
   if (!current || current.withdrawnIdx == null) return false;
   const changed = idx !== current.withdrawnIdx;
-  if (changed) answersChanged++;
+  if (changed && !current.answerChangedThisMission) { answersChanged++; current.answerChangedThisMission = true; }
   current.withdrawnIdx = null;
   return changed;
 }
@@ -676,7 +678,7 @@ function startScenario(rawScenario, avoidCoverId) {
     : rawScenario;
   const legend = pickLegend(scenario, avoidCoverId);
   if (scenario.mode !== "whodunnit") scenario = shuffleOptions(scenario, legend);
-  current = { scenario, legend, chosen: null, rows: null, total: 0, morseRevealed: false, timedOut: false, challengeMsLeft: challengeDurationMs(scenario), startedAt: Date.now(), hintMessage: null };
+  current = { scenario, legend, chosen: null, rows: null, total: 0, morseRevealed: false, timedOut: false, challengeMsLeft: challengeDurationMs(scenario), startedAt: Date.now(), hintMessage: null, guardianSavedThisMission: false, answerChangedThisMission: false, streakResetThisMission: false };
   recentScenarios.push(scenario.id);
   if (recentScenarios.length > REPEAT_WINDOW) recentScenarios.shift();
   lastCoverId = current.legend.spineId;
@@ -815,6 +817,7 @@ const EGG_BUILDERS = { EPI1: buildEggPi1, EMC1: buildEggMorse1, EMC2: buildEggMo
 const MORSE_EGG_IDS = ["EMC1", "EMC2", "EMC3"];
 
 function newMission() {
+  if (typeof pauseMorseAudio === "function") pauseMorseAudio();
   if (!runTimerStarted) { runStartedAt = Date.now(); runTimerStarted = true; }
   coverAnchored = false;
   awaitingSkipReturn = false;
@@ -1082,6 +1085,8 @@ const ACHIEVEMENTS = [
     check: stats => stats.runs.some(r => r.outcome === "complete" && r.streakResets === 0) },
   { id: "no_backup", ...ACHIEVEMENT_COPY.no_backup,
     check: stats => stats.runs.some(r => r.outcome === "complete" && r.guardianSaves === 0) },
+  { id: "unwavering", ...ACHIEVEMENT_COPY.unwavering,
+    check: stats => stats.runs.some(r => r.outcome === "complete" && r.answersChanged === 0) },
 
   { id: "counterintelligence", ...ACHIEVEMENT_COPY.counterintelligence,
     check: stats => (stats.aggregates.whoCorrect || 0) >= 1 },

@@ -56,7 +56,8 @@ function drawReportCanvas(outcome, img) {
   const rankText = retired ? RANK_NAMES.burned : computeRank();
   const failedCount = timeoutCount();
   const missionsText = `${completedCount} completed · ${skippedCount} skipped` + (failedCount ? ` · ${failedCount} failed` : "");
-  const runTimeText = formatElapsed(elapsedMs());
+  const lastRun = (loadStats().runs || []).slice(-1)[0];
+  const runTimeText = formatElapsed(lastRun ? lastRun.runMs : elapsedMs());
   const livesValueText = `${remaining} / ${POOL_SIZE}`;
   const livesIcons = Array.from({ length: POOL_SIZE }, (_, i) => i >= POOL_SIZE - spent ? "💀" : "🐱").join("");
   const scoreText = `${computeScore()}`;

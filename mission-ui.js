@@ -392,15 +392,7 @@ function nextRankUp(stats) {
 }
 
 function retentionNudgeHtml() {
-  if (!RECORDS_ENABLED) return "";
-  const stats = loadStats();
-  const lines = [];
-  const nextRank = nextRankUp(stats);
-  if (nextRank) lines.push(`${RECORDS_COPY.nudgeNextRank}${nextRank}`);
-  const closest = closestAchievementProgress(stats);
-  if (closest) lines.push(`${RECORDS_COPY.nudgeAchievement}${closest.name} (${closest.current}/${closest.target})`);
-  if (!lines.length) return "";
-  return `<div class="retention-nudge">${lines.map(l => `<p>${l}</p>`).join("")}</div>`;
+  return "";
 }
 
 function formatElapsed(ms, padMinutes) {

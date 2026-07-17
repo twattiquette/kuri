@@ -1,4 +1,4 @@
-const VERSION = "0.75.12-alpha";
+const VERSION = "0.75.13-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1383,7 +1383,8 @@ const RECORDS_COPY = {
     scenes: "Scenes",
   },
   tips: {
-    guardian: "answers changed · guardian saves",
+    answersChanged: "answers changed",
+    guardianSaves: "guardian saves",
     regen: "lives regained",
     timeouts: "timeouts",
     avgMission: "avg mission time",
@@ -1419,11 +1420,11 @@ const ACHIEVEMENT_COPY = {
   active_duty:         { cat: "rank",       name: "Active Duty",           desc: "earn Operative rank." },
   handlers_trust:      { cat: "rank",       name: "Handler's Trust",       desc: "earn Senior Operative rank." },
   ghost_protocol:      { cat: "rank",       name: "Ghost Protocol",        desc: "earn Master Spy rank." },
-  cover_established:   { cat: "ops",        name: "Cover Established",     desc: "complete your first training run." },
-  second_tour:         { cat: "ops",        name: "Second Tour",            desc: "complete three training runs." },
-  deep_cover:          { cat: "ops",        name: "Deep Cover",             desc: "complete five training runs." },
-  seasoned:            { cat: "ops",        name: "Seasoned Operative",     desc: "complete fifteen training runs." },
-  lifer:               { cat: "ops",        name: "Lifer",                  desc: "complete thirty training runs." },
+  cover_established:   { cat: "ops",        name: "Cover Established",     desc: "complete your first run." },
+  second_tour:         { cat: "ops",        name: "Second Tour",            desc: "complete three runs." },
+  deep_cover:          { cat: "ops",        name: "Deep Cover",             desc: "complete five runs." },
+  seasoned:            { cat: "ops",        name: "Seasoned Operative",     desc: "complete fifteen runs." },
+  lifer:               { cat: "ops",        name: "Lifer",                  desc: "complete thirty runs." },
   field_work:          { cat: "ops",        name: "Field Work",             desc: "clear ten missions across all runs." },
   dossier_complete:    { cat: "ops",        name: "Dossier Complete",       desc: "clear fifty missions across all runs." },
   century:             { cat: "ops",        name: "Century",                desc: "clear one hundred missions across all runs." },
@@ -1438,6 +1439,7 @@ const ACHIEVEMENT_COPY = {
   by_the_book:         { cat: "discipline", name: "By The Book",            desc: "complete a run without skipping a mission." },
   iron_legend:         { cat: "discipline", name: "Iron Legend",             desc: "complete a run with no streak resets." },
   no_backup:           { cat: "discipline", name: "No Backup",              desc: "complete a run without a guardian save." },
+  unwavering:          { cat: "discipline", name: "Unwavering",             desc: "complete a run without changing an answer." },
   clean_sweep:         { cat: "discipline", name: "Clean Sweep",            desc: "complete a run with zero cracks, zero skips, and no streak resets." },
   shadow_recruit:      { cat: "discipline", name: "Shadow Recruit",         desc: "complete a run at Master Spy rank with zero cracks." },
   counterintelligence: { cat: "ci",         name: "Counterintelligence",    desc: "identify your first imposter." },
@@ -1451,8 +1453,8 @@ const ACHIEVEMENT_COPY = {
   signal_intercept:    { cat: "dead_drop",  name: "Signal Intercept",       desc: "decode the morse transmission." },
   off_the_grid:        { cat: "dead_drop",  name: "Off The Grid",           desc: "trigger the ultimate score egg." },
   signal_directorate:  { cat: "dead_drop",  name: "Signal Directorate",     desc: "complete all three morse code missions." },
-  burn_notice:         { cat: "service",    name: "Burn Notice",            desc: "have your cover blown for the first time." },
-  compromised:         { cat: "service",    name: "Compromised",            desc: "have your cover blown 5 times." },
+  burn_notice:         { cat: "service",    name: "Compromised",            desc: "have your cover blown for the first time." },
+  compromised:         { cat: "service",    name: "Burn Notice",            desc: "have your cover blown 5 times." },
   disavowed:           { cat: "service",    name: "Disavowed",              desc: "have your cover blown 10 times." },
   guardian_angel:      { cat: "service",    name: "Guardian Angel",         desc: "receive ten guardian saves across all runs." },
   nine_lives:          { cat: "service",    name: "Nine Lives",             desc: "regain nine lives across all runs." },

@@ -52,7 +52,7 @@ function renderDevPanel() {
 
   panel.innerHTML = poolHtml + curHtml;
   const debugLogOutput = document.getElementById("debugLogOutput");
-  if (debugLogOutput) debugLogOutput.value = buildDebugLogMarkdown();
+  if (debugLogOutput) debugLogOutput.value = buildDebugLog();
 }
 
 function truncPreview(text, n) {
@@ -83,17 +83,20 @@ function debugHistoryLine(h) {
     h.regenApplied ? "♻" : "",
     h.timedOut ? "⏱" : "",
     h.answerChanged ? "↺" : "",
+    h.guardianUsed ? "🛡" : "",
   ].filter(Boolean).join("");
-  return `${h.id} ${cover} ${opt}"${text}"${secs}${tiers}${who} -${h.total} ${h.poolAfter}/${POOL_SIZE} ${h.score}${flags ? " " + flags : ""}`;
+  const streak = h.streakAfter != null ? ` s${h.streakAfter}` : "";
+  return `${h.id} ${cover} ${opt}"${text}"${secs}${tiers}${who} -${h.total} ${h.poolAfter}/${POOL_SIZE} ${h.score}${streak}${flags ? " " + flags : ""}`;
 }
 
-function buildDebugLogMarkdown() {
+function buildDebugLog() {
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const lines = [];
   const tierShort = { Easy: "E", Medium: "M", MediumFacet: "MF", Hard: "H" };
   const unlockedLevels = Object.keys(TIER_RANK_UNLOCK).filter(t => rankAtLeast(TIER_RANK_UNLOCK[t])).map(t => tierShort[t] || t);
   lines.push(`kuri ${VERSION} ♥${remaining}/${POOL_SIZE} score:${computeScore()} ${retired ? RANK_NAMES.burned : computeRank()} [${unlockedLevels.join(",")}]`);
-  lines.push(`${completedCount}done ${skippedCount}skip guardian:${guardianSaves} changed:${answersChanged} resets:${guardianStreakResets}`);
+  const regenCount = history.filter(h => h.regenApplied).length;
+  lines.push(`${completedCount}done ${skippedCount}skip guardian:${guardianSaves} changed:${answersChanged} resets:${guardianStreakResets} regen:${regenCount}`);
   const toggles = ["guardian", "regen", "endless", "challenge"]
     .map(k => {
       const on = toggleOn(k);
@@ -108,10 +111,10 @@ function buildDebugLogMarkdown() {
   lines.push("");
   if (!history.length) {
     lines.push("no missions yet");
-    return "```\n" + lines.join("\n") + "\n```";
+    return lines.join("\n");
   }
   history.slice().reverse().forEach(h => lines.push(debugHistoryLine(h)));
-  return "```\n" + lines.join("\n") + "\n```";
+  return lines.join("\n");
 }
 
 function formatRecordDate(epoch) {
@@ -189,7 +192,7 @@ function renderRecords() {
     ? formatElapsed(agg.totalMissionMs / agg.totalTimedMissions)
     : "–";
   const modesGrp = grp(RECORDS_COPY.groups.modes,
-    stat(RECORDS_COPY.stats.guardian, `${agg.totalAnswersChanged || 0} · ${agg.totalGuardianSaves || 0}`, RECORDS_COPY.tips.guardian) +
+    stat(RECORDS_COPY.stats.guardian, `<span title="${RECORDS_COPY.tips.answersChanged}">${agg.totalAnswersChanged || 0}</span> · <span title="${RECORDS_COPY.tips.guardianSaves}">${agg.totalGuardianSaves || 0}</span>`) +
     stat(RECORDS_COPY.stats.regen, agg.totalLivesRegained || 0, RECORDS_COPY.tips.regen) +
     stat(RECORDS_COPY.stats.streakResets, agg.totalStreakResets || 0) +
     stat(RECORDS_COPY.stats.challenge, `<span title="${RECORDS_COPY.tips.timeouts}">${agg.totalFailed || 0}</span> · <span title="${RECORDS_COPY.tips.avgMission}">${avgMissionText}</span>`));
@@ -563,6 +566,11 @@ function init() {
   setInterval(gameTick, CHALLENGE_TICK_MS);
   initDifficulty();
   initEventDelegation();
+  const copyBtn = document.getElementById("copyDebugLog");
+  if (copyBtn) copyBtn.addEventListener("click", () => {
+    const ta = document.getElementById("debugLogOutput");
+    if (ta && navigator.clipboard) navigator.clipboard.writeText(ta.value).then(() => { copyBtn.textContent = "✅"; setTimeout(() => { copyBtn.textContent = "📋"; }, 1200); });
+  });
 
   loadStats();
   initTheme();
