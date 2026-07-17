@@ -93,7 +93,7 @@ function buildDebugLogMarkdown() {
   const tierShort = { Easy: "E", Medium: "M", MediumFacet: "MF", Hard: "H" };
   const unlockedLevels = Object.keys(TIER_RANK_UNLOCK).filter(t => rankAtLeast(TIER_RANK_UNLOCK[t])).map(t => tierShort[t] || t);
   lines.push(`kuri ${VERSION} ♥${remaining}/${POOL_SIZE} score:${computeScore()} ${retired ? RANK_NAMES.burned : computeRank()} [${unlockedLevels.join(",")}]`);
-  lines.push(`${completedCount}done ${skippedCount}skip guardian:${guardianSaves} resets:${guardianStreakResets}`);
+  lines.push(`${completedCount}done ${skippedCount}skip guardian:${guardianSaves} changed:${answersChanged} resets:${guardianStreakResets}`);
   const toggles = ["guardian", "regen", "endless", "challenge"]
     .map(k => {
       const on = toggleOn(k);
@@ -508,7 +508,7 @@ function onGameKeydown(e) {
       returnToSkipped();
     } else if (current.chosen !== null && !pendingEgg) {
       const guardianOn = toggleOn("guardian");
-      if (guardianOn && !retired && !current.reselecting) {
+      if (guardianOn && !current.reselecting) {
         e.preventDefault();
         startReselect();
       }

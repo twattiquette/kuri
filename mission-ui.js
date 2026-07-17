@@ -453,7 +453,7 @@ function computeCoverTrendStats() {
 
 function extraRunStats() {
   const regenFires = history.filter(h => h.regenApplied).length;
-  return { regenFires, livesReclaimed: regenFires * REGEN_LIVES, timeouts: timeoutCount(), guardianSaves, guardianStreakResets };
+  return { regenFires, livesReclaimed: regenFires * REGEN_LIVES, timeouts: timeoutCount(), guardianSaves, guardianStreakResets, answersChanged };
 }
 
 function fullTrendsLines() {
@@ -468,9 +468,12 @@ function fullTrendsLines() {
   if (extra.regenFires) {
     lines.push({ kind: "summary", text: `${DEBRIEF_COPY.regenRestored} ${extra.livesReclaimed} ${extra.livesReclaimed === 1 ? "life" : "lives"}.` });
   }
-  if (extra.guardianSaves || extra.guardianStreakResets) {
-    const saveText = extra.guardianSaves ? `${DEBRIEF_COPY.guardianSaved} ${extra.guardianSaves} ${DEBRIEF_COPY.runEndingAnswer}${extra.guardianSaves === 1 ? "" : "s"}` : DEBRIEF_COPY.guardianUsed;
-    lines.push({ kind: "summary", text: `${saveText}, ${DEBRIEF_COPY.streakReset} ${extra.guardianStreakResets} time${extra.guardianStreakResets === 1 ? "" : "s"}.` });
+  if (extra.answersChanged || extra.guardianSaves || extra.guardianStreakResets) {
+    const changeText = extra.answersChanged ? `${DEBRIEF_COPY.guardianChanged} ${extra.answersChanged} answer${extra.answersChanged === 1 ? "" : "s"}` : DEBRIEF_COPY.guardianUsed;
+    lines.push({ kind: "summary", text: `${changeText}, ${DEBRIEF_COPY.streakReset} ${extra.guardianStreakResets} time${extra.guardianStreakResets === 1 ? "" : "s"}.` });
+    if (extra.guardianSaves) {
+      lines.push({ kind: "summary", text: `${extra.guardianSaves} ${DEBRIEF_COPY.runEndingAnswer}${extra.guardianSaves === 1 ? "" : "s"} ${DEBRIEF_COPY.withdrawn}.` });
+    }
   }
   if (extra.timeouts) {
     lines.push({ kind: "summary", text: `${DEBRIEF_COPY.challengeClock} ${extra.timeouts} time${extra.timeouts === 1 ? "" : "s"} this run.` });

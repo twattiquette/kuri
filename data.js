@@ -1,4 +1,4 @@
-const VERSION = "0.74.2-alpha";
+const VERSION = "0.74.3-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1330,9 +1330,10 @@ const BUTTON_COPY = {
 
 const DEBRIEF_COPY = {
   regenRestored: "Life regen restored",
-  guardianSaved: "Guardian saved you from",
+  guardianChanged: "Guardian changed",
   runEndingAnswer: "run-ending answer",
   guardianUsed: "Guardian was used",
+  withdrawn: "withdrawn",
   streakReset: "streak reset",
   challengeClock: "Challenge clock ran out",
   cleanFallbackBlown: "No pattern to it. Just ran out of runway.",

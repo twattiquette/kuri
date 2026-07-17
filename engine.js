@@ -226,8 +226,9 @@ function handleRechooseGuard(idx) {
       return false;
     }
     if (retired && guardianOn) {
-      guardianSaves++;
+      if (!current.reselecting) guardianSaves++;
       guardianStreakResets++;
+      current.withdrawnIdx = current.chosen;
       goBack(true);
     }
     return false;
@@ -264,6 +265,7 @@ function commitChoice(total, clean, timedOut, entry) {
 
 function chooseOption(idx) {
   if (!current || current.timedOut) return;
+  if (Date.now() - lastWithdrawAt < 350) return;
   const guardianOn = toggleOn("guardian");
   const rechoose = current.chosen !== null;
   if (rechoose && !handleRechooseGuard(idx)) return;
@@ -272,12 +274,14 @@ function chooseOption(idx) {
   const rawExposure = rows.reduce((a, r) => a + r.exposure, 0);
   const guardianReselect = rechoose && guardianOn && current.reselecting;
 
+  let freshChange = false;
   if (rechoose) {
     undoRechoose();
     if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; answersChanged++; }
     current.reselecting = false;
   } else {
     completedCount++;
+    freshChange = noteFreshAnswer(idx);
   }
 
   const remainingBefore = POOL_SIZE - spent;
@@ -304,7 +308,7 @@ function chooseOption(idx) {
     cover: (COVERS[current.legend.spineId] || FACETS[current.legend.spineId]).name,
     optIdx: idx,
     optText: s.options[idx],
-    answerChanged: guardianReselect,
+    answerChanged: guardianReselect || freshChange,
     msTaken,
     rows,
     total,
@@ -324,18 +328,14 @@ function chooseOption(idx) {
 
 function undoRecordedRun() {
   if (!runRecorded) return;
-  const stats = loadStats();
-  const undone = stats.runs.pop();
-  if (undone) {
-    stats.aggregates.totalRuns = Math.max(0, (stats.aggregates.totalRuns || 0) - 1);
-    stats.aggregates.totalMissions = Math.max(0, (stats.aggregates.totalMissions || 0) - (undone.missions || 0));
-    saveStats(stats);
-  }
+  if (statsBeforeRunEnd) saveStats(statsBeforeRunEnd);
+  statsBeforeRunEnd = null;
   runRecorded = false;
 }
 
 function goBack(breakStreak) {
   if (!current || current.chosen === null) return;
+  lastWithdrawAt = Date.now();
   if (retired) undoRecordedRun();
   spent -= current.total;
   if (current.regenApplied) spent += REGEN_LIVES;
@@ -359,7 +359,7 @@ function goBack(breakStreak) {
 function startReselect() {
   const guardianOn = toggleOn("guardian");
   if (!current || current.chosen === null || !guardianOn) return;
-  if (retired) undoRecordedRun();
+  if (retired) { guardianSaves++; undoRecordedRun(); }
   current.reselecting = true;
   announce("Choose a different answer. Your streak will reset.");
   renderMission();
@@ -415,6 +415,16 @@ function toggleOn(name) {
 
 function timeoutCount() {
   return history.filter(h => h.timedOut).length;
+}
+
+let lastWithdrawAt = 0;
+
+function noteFreshAnswer(idx) {
+  if (!current || current.withdrawnIdx == null) return false;
+  const changed = idx !== current.withdrawnIdx;
+  if (changed) answersChanged++;
+  current.withdrawnIdx = null;
+  return changed;
 }
 
 function challengeDurationMs(scenario) {
@@ -875,6 +885,7 @@ function newMission() {
 const STATS_KEY = "kuri-stats";
 const STATS_RUN_CAP = 50;
 let runRecorded = false;
+let statsBeforeRunEnd = null;
 
 const REMOTE_SUBMIT_ENABLED = false;
 function submitRunRemote(run) {
@@ -1147,6 +1158,7 @@ function recordRunEnd(outcome) {
   if (runRecorded) return;
   runRecorded = true;
   const stats = loadStats();
+  statsBeforeRunEnd = JSON.parse(JSON.stringify(stats));
   const timedAnswers = challengeEnabled() ? history.filter(h => !h.timedOut && h.msTaken != null) : [];
   const run = {
     id: newRunId(),

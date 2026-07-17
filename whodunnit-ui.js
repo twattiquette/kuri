@@ -122,6 +122,7 @@ function readBeat(i, call) {
 
 function accuse(idx) {
   if (!current || current.timedOut) return;
+  if (Date.now() - lastWithdrawAt < 350) return;
   const guardianOn = toggleOn("guardian");
   const rechoose = current.chosen !== null;
   if (rechoose && !handleRechooseGuard(idx)) return;
@@ -143,12 +144,14 @@ function accuse(idx) {
   });
 
   const guardianReselect = rechoose && guardianOn && current.reselecting;
+  let freshChange = false;
   if (rechoose) {
     undoRechoose();
     if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; answersChanged++; }
     current.reselecting = false;
   } else {
     completedCount++;
+    freshChange = noteFreshAnswer(idx);
   }
 
   current.chosen = idx;
@@ -164,7 +167,7 @@ function accuse(idx) {
     optIdx: idx,
     optText: s.suspects[idx].name,
     correct,
-    answerChanged: guardianReselect,
+    answerChanged: guardianReselect || freshChange,
     msTaken,
     rows: [],
     total,
