@@ -159,7 +159,7 @@
   .bottom-controls .back-btn { justify-self: start; margin-bottom: 0; }
   .top-controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
   .top-controls #resetPool { justify-self: start; }
-  .top-controls #saveReportBtnTop { justify-self: center; max-width: 7em; }
+  .top-controls #saveReportBtnTop { justify-self: center; }
   .top-controls .util { grid-column: 3; justify-self: end; margin-left: 0; }
   button.danger { border-color: var(--danger); color: var(--danger); }
   button.secondary { border-color: var(--win); color: var(--win); font-weight: bold; }
@@ -336,6 +336,10 @@
     .controls.bottom-controls > button { flex: 1 1 0; margin-left: 0; min-width: 0; }
     .controls.bottom-controls .util { flex: 1 1 0; margin-left: 0; min-width: 0; display: flex; }
     .controls.bottom-controls .util button { width: 100%; }
+    .controls.top-controls { display: flex; flex-wrap: nowrap; gap: 8px; }
+    .controls.top-controls > button { flex: 1 1 0; min-width: 0; }
+    .controls.top-controls .util { flex: 1 1 0; min-width: 0; display: flex; }
+    .controls.top-controls .util button { width: 100%; }
     .read-row button { min-height: 44px; }
     .section-toggle { min-height: 44px; min-width: 44px; }
     .records-groups { display: block; margin-bottom: 0; }
