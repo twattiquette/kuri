@@ -1,4 +1,4 @@
-const VERSION = "0.75.7-alpha";
+const VERSION = "0.75.8-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1349,6 +1349,8 @@ const RECORDS_COPY = {
   empty: "no runs recorded yet.",
   achievementsHeading: "achievements",
   commendationsHeading: "commendations",
+  expandAll: "expand all",
+  collapseAll: "collapse all",
   nudgeNextRank: "next rank: ",
   nudgeAchievement: "achievement progress: ",
   groups: {

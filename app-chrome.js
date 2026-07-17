@@ -126,9 +126,10 @@ function renderCommendations() {
   if (!panel) return;
   const stats = loadStats();
   const unlocked = Array.isArray(stats.unlocked) ? stats.unlocked : [];
-  let html = `<div class="achievements">` +
-    `<div class="achievements-header">${RECORDS_COPY.commendationsHeading} ${unlocked.length} / ${ACHIEVEMENTS.length}</div>`;
   const catsOpen = !(window.matchMedia && window.matchMedia("(max-width: 560px)").matches);
+  let html = `<div class="achievements">` +
+    `<div class="achievements-header">${RECORDS_COPY.commendationsHeading} ${unlocked.length} / ${ACHIEVEMENTS.length}` +
+    ` <button type="button" class="ach-toggle-all" data-action="ach-toggle-all" aria-expanded="${catsOpen}">${catsOpen ? RECORDS_COPY.collapseAll : RECORDS_COPY.expandAll}</button></div>`;
   ACHIEVEMENT_CATS.forEach(cat => {
     const group = ACHIEVEMENTS.filter(a => a.cat === cat.id);
     if (!group.length) return;
@@ -391,6 +392,14 @@ function onDelegatedClick(e) {
         el.dataset.armed = "1";
         el.textContent = "click again to clear runs and badges";
       }
+      break;
+    }
+    case "ach-toggle-all": {
+      const dets = Array.from(document.querySelectorAll("#commendationsPanel details.ach-cat"));
+      const anyOpen = dets.some(d => d.open);
+      dets.forEach(d => { d.open = !anyOpen; });
+      el.textContent = anyOpen ? RECORDS_COPY.expandAll : RECORDS_COPY.collapseAll;
+      el.setAttribute("aria-expanded", String(!anyOpen));
       break;
     }
     case "return-skipped": returnToSkipped(); break;
