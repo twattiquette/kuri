@@ -102,8 +102,10 @@
   .ach-unlocked .ach-name { color: var(--accent); }
   .ach-locked { opacity: 0.5; }
   .ach-desc { color: var(--dim); }
-  .ach-cat-label { color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75em; font-weight: bold; margin: 10px 0 4px; }
-  .ach-cat-label:first-of-type { margin-top: 4px; }
+  .ach-cat { margin-top: 8px; }
+  .ach-cat:first-of-type { margin-top: 0; }
+  .ach-cat-label { color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75em; font-weight: bold; margin: 0 0 4px; }
+  summary.ach-cat-label { cursor: pointer; }
   .ach-cat-count { color: var(--dim); font-weight: normal; }
   h2.section-label { font-size: 0.78em; font-weight: normal; color: var(--dim); letter-spacing: 0.08em; margin: 0 0 4px; }
   .controls {
@@ -311,11 +313,7 @@
   }
   @media (max-width: 560px) {
     .achievements-list { grid-template-columns: repeat(2, 1fr); gap: 3px; }
-    .achievements-list li { flex-wrap: nowrap; align-items: baseline; gap: 0; padding: 3px 6px; overflow: hidden; }
-    .achievements-list .ach-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .achievements-list .ach-desc { display: none; }
-    .ach-cat-label { margin: 6px 0 2px; }
-    .ach-cat-label:first-of-type { margin-top: 2px; }
+    .achievements-list li { padding: 3px 6px; }
     header > .collapse-bar { gap: 4px; }
     .stats-header { flex-wrap: nowrap; gap: 8px; }
     .avatar { height: 3.6em; }

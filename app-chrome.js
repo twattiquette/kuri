@@ -128,19 +128,21 @@ function renderCommendations() {
   const unlocked = Array.isArray(stats.unlocked) ? stats.unlocked : [];
   let html = `<div class="achievements">` +
     `<div class="achievements-header">${RECORDS_COPY.commendationsHeading} ${unlocked.length} / ${ACHIEVEMENTS.length}</div>`;
+  const catsOpen = !(window.matchMedia && window.matchMedia("(max-width: 560px)").matches);
   ACHIEVEMENT_CATS.forEach(cat => {
     const group = ACHIEVEMENTS.filter(a => a.cat === cat.id);
     if (!group.length) return;
     const catUnlocked = group.filter(a => unlocked.indexOf(a.id) !== -1).length;
-    html += `<div class="ach-cat-label">${cat.label} <span class="ach-cat-count">${catUnlocked}/${group.length}</span></div>`;
-    html += `<ul class="achievements-list">`;
+    html += `<details class="ach-cat"${catsOpen ? " open" : ""}>` +
+      `<summary class="ach-cat-label">${cat.label} <span class="ach-cat-count">${catUnlocked}/${group.length}</span></summary>` +
+      `<ul class="achievements-list">`;
     group.forEach(a => {
       const isUnlocked = unlocked.indexOf(a.id) !== -1;
       html += `<li class="${isUnlocked ? "ach-unlocked" : "ach-locked"}">` +
         `<span class="ach-name">${a.name}</span>` +
         `<span class="ach-desc">${a.desc.replace(/\.$/, "")}</span></li>`;
     });
-    html += `</ul>`;
+    html += `</ul></details>`;
   });
   html += `</div>`;
   panel.innerHTML = html;
