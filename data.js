@@ -1,4 +1,4 @@
-const VERSION = "0.75.0-alpha";
+const VERSION = "0.75.1-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1424,11 +1424,11 @@ const ACHIEVEMENT_COPY = {
   dossier_complete:    { cat: "ops",        name: "Dossier Complete",       desc: "clear fifty missions across all runs." },
   century:             { cat: "ops",        name: "Century",                desc: "clear one hundred missions across all runs." },
   quartermaster:       { cat: "ops",        name: "Quartermaster",          desc: "clear two hundred and fifty missions." },
-  tradecraft:          { cat: "tradecraft", name: "Tradecraft",             desc: "score one thousand five hundred or higher." },
-  legend_status:       { cat: "tradecraft", name: "Legend Status",          desc: "score two thousand five hundred or higher." },
-  high_value_asset:    { cat: "tradecraft", name: "High Value Asset",       desc: "score three thousand or higher." },
-  shadow_network:      { cat: "tradecraft", name: "Shadow Network",         desc: "score three thousand five hundred or higher." },
-  black_budget:        { cat: "tradecraft", name: "Black Budget",           desc: "score four thousand five hundred or higher." },
+  tradecraft:          { cat: "tradecraft", name: "Tradecraft",             desc: "score 1,500 or higher." },
+  legend_status:       { cat: "tradecraft", name: "Legend Status",          desc: "score 2,500 or higher." },
+  high_value_asset:    { cat: "tradecraft", name: "High Value Asset",       desc: "score 3,000 or higher." },
+  shadow_network:      { cat: "tradecraft", name: "Shadow Network",         desc: "score 3,500 or higher." },
+  black_budget:        { cat: "tradecraft", name: "Black Budget",           desc: "score 4,500 or higher." },
   zero_exposure:       { cat: "discipline", name: "Zero Exposure",          desc: "complete a run with zero cracks." },
   safe_house:          { cat: "discipline", name: "Safe House",             desc: "complete a run using three lives or fewer." },
   by_the_book:         { cat: "discipline", name: "By The Book",            desc: "complete a run without skipping a mission." },
@@ -1448,6 +1448,8 @@ const ACHIEVEMENT_COPY = {
   off_the_grid:        { cat: "dead_drop",  name: "Off The Grid",           desc: "trigger the ultimate score egg." },
   signal_directorate:  { cat: "dead_drop",  name: "Signal Directorate",     desc: "complete all three morse code missions." },
   burn_notice:         { cat: "service",    name: "Burn Notice",            desc: "have your cover blown for the first time." },
+  compromised:         { cat: "service",    name: "Compromised",            desc: "have your cover blown 5 times." },
+  disavowed:           { cat: "service",    name: "Disavowed",              desc: "have your cover blown 10 times." },
   guardian_angel:      { cat: "service",    name: "Guardian Angel",         desc: "receive ten guardian saves across all runs." },
   nine_lives:          { cat: "service",    name: "Nine Lives",             desc: "regain nine lives across all runs." },
   untouchable:         { cat: "service",    name: "Untouchable",            desc: "regain nine lives in a single run." },

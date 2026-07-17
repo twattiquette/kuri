@@ -985,6 +985,7 @@ function rankMeets(rank, minRank) {
 const ACHIEVEMENTS_ENABLED = true;
 const RECORDS_ENABLED = true;
 function completeRuns(stats) { return stats.runs.filter(r => r.outcome === "complete").length; }
+function blownRuns(stats) { return stats.runs.filter(r => r.outcome === "blown").length; }
 function maxSpineMissions(stats) {
   const c = stats.aggregates.covers || {};
   return Object.values(c).reduce((mx, v) => Math.max(mx, v.missions || 0), 0);
@@ -1096,6 +1097,12 @@ const ACHIEVEMENTS = [
 
   { id: "burn_notice", ...ACHIEVEMENT_COPY.burn_notice,
     check: stats => stats.runs.some(r => r.outcome === "blown") },
+  { id: "compromised", ...ACHIEVEMENT_COPY.compromised,
+    check: stats => blownRuns(stats) >= 5,
+    progress: stats => ({ current: blownRuns(stats), target: 5 }) },
+  { id: "disavowed", ...ACHIEVEMENT_COPY.disavowed,
+    check: stats => blownRuns(stats) >= 10,
+    progress: stats => ({ current: blownRuns(stats), target: 10 }) },
   { id: "guardian_angel", ...ACHIEVEMENT_COPY.guardian_angel,
     check: stats => (stats.aggregates.totalGuardianSaves || 0) >= 10,
     progress: stats => ({ current: stats.aggregates.totalGuardianSaves || 0, target: 10 }) },
