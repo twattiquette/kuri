@@ -1,3 +1,7 @@
+function imposterRevealText(tell, profileName, realName, crackTags) {
+  return `${tell}. That isn't ${profileName}; that's ${realName} wearing ${profileName}'s coat, and the stitching gave on ${listJoin(crackTags)}.`;
+}
+
 function whodunnitEpilogue(scenario, cast) {
   if (scenario.epilogue) return scenario.epilogue;
   const S = scenario.suspects;
@@ -7,8 +11,7 @@ function whodunnitEpilogue(scenario, cast) {
   const crackTags = cast.tiers[cast.imposter]
     .map((t, i) => (t === "crack" ? tags[i] : null)).filter(Boolean);
   const slips = cast.herringByScene.map((si, sc) => `${S[si].name} drifted on ${tags[sc]} once`);
-  const reveal = `${S[cast.imposter].name} ${scenario.imposterTell}. That isn't ${profileName}; ` +
-    `that's ${archName(cast.imposterArchetype)} wearing ${profileName}'s coat, and the stitching gave on ${listJoin(crackTags)}.`;
+  const reveal = `${S[cast.imposter].name} ${imposterRevealText(scenario.imposterTell, profileName, archName(cast.imposterArchetype), crackTags)}`;
   const herrings = `${listJoin(slips)}, however one tell isn't a pattern. The consistent scene cracks revealed the imposter.`;
   return `${reveal}\n\n${herrings}`;
 }
@@ -31,7 +34,7 @@ function renderWhodunnitMission(area) {
   if (!current.beatReads) current.beatReads = s.beatPrompts.map(() => []);
   const answered = current.chosen !== null;
   const resolved = answered || current.timedOut;
-  const guardianOn = document.getElementById("guardianToggle").checked;
+  const guardianOn = toggleOn("guardian");
 
   let html = missionHeader(s);
   html += coverProfileCard(current.legend, "THE PROFILE", "the cover one suspect is falsely claiming to hold");
@@ -101,16 +104,7 @@ function renderWhodunnitMission(area) {
   if (current.timedOut) html += renderTimeoutDebrief();
   else if (answered) html += renderWhodunnitDebrief();
 
-  html += `<div class="status-row"><div class="status-line"></div>${timerControlsHtml()}</div>`;
-  html += `<div class="controls bottom-controls" role="group" aria-label="mission controls">`;
-  if (!resolved && skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
-  else if (answered && guardianOn && !current.reselecting) html += `<button id="changeAnswerBtn" class="back-btn" data-action="reselect">↺ Change answer</button>`;
-  html += `<div class="util">`;
-  html += `<button id="nextBtn" class="primary" data-action="next-mission"${current.reselecting ? " disabled" : ""}>${resolved ? (retired && guardianOn ? BUTTON_COPY.endRun : BUTTON_COPY.nextMission) : BUTTON_COPY.skip} →</button>`;
-  html += `</div></div>`;
-  const leftHint = !resolved && skippedStack.length ? `<kbd>←</kbd> return to skipped`
-    : (answered && guardianOn && !current.reselecting ? `<kbd>←</kbd> change answer` : "");
-  html += `<div class="kbd-hint"><span>${leftHint}</span><span><kbd>0</kbd> cover · <kbd>1</kbd>–<kbd>${s.suspects.length}</kbd> accuse</span><span>skip / next mission <kbd>→</kbd></span></div>`;
+  html += bottomBarHtml(answered, resolved, guardianOn, s.suspects.length, "accuse");
 
   area.innerHTML = html;
   setStatus(missionStatusLine());
@@ -128,7 +122,7 @@ function readBeat(i, call) {
 
 function accuse(idx) {
   if (!current || current.timedOut) return;
-  const guardianOn = document.getElementById("guardianToggle").checked;
+  const guardianOn = toggleOn("guardian");
   const rechoose = current.chosen !== null;
   if (rechoose && !handleRechooseGuard(idx)) return;
   const s = current.scenario;
@@ -214,7 +208,7 @@ function renderWhodunnitDebrief() {
     const crackScenes = current.cast.tiers[liarIdx].map((t, i) => (t === "crack" ? i : -1)).filter(i => i >= 0);
     const crackLabels = crackScenes.map(sc => `<span class="tier-tag tier-crack">${WHO_TIER_LABEL.crack}</span><span class="read-result">${readMark(liarIdx, sc)}</span>`).join(" ");
     const crackTags = crackScenes.map(i => tags[i]);
-    html += `<p class="tell-line"><span class="who">${liar.name}:</span> ${crackLabels} ${s.imposterTell}. That isn't ${archName}; that's ${liarReal} wearing ${archName}'s coat, and the stitching gave on ${listJoin(crackTags)}.</p>`;
+    html += `<p class="tell-line"><span class="who">${liar.name}:</span> ${crackLabels} ${imposterRevealText(s.imposterTell, archName, liarReal, crackTags)}</p>`;
     s.beatPrompts.forEach((_, sc) => {
       s.suspects.forEach((sus, si) => {
         if (si !== liarIdx && current.cast.tiers[si][sc] === "hairline") {

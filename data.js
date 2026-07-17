@@ -1,4 +1,4 @@
-const VERSION = "0.74.1-alpha";
+const VERSION = "0.74.2-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1436,10 +1436,10 @@ const ACHIEVEMENT_COPY = {
   counterintelligence: { cat: "ci",         name: "Counterintelligence",    desc: "identify your first imposter." },
   double_agent:        { cat: "ci",         name: "Double Agent",           desc: "correctly identify five imposters." },
   profiler:            { cat: "ci",         name: "Profiler",               desc: "correctly identify fifteen imposters." },
-  cold_read:           { cat: "ci",         name: "Cold Read",              desc: "catch ten tells across whodunnit scenes." },
-  full_spectrum:       { cat: "covers",     name: "Full Spectrum",           desc: "hold covers across all five spines." },
-  specialist:          { cat: "covers",     name: "Specialist",              desc: "run ten missions under a single spine." },
-  deep_specialist:     { cat: "covers",     name: "Deep Specialist",         desc: "run twenty-five missions under a single spine." },
+  cold_read:           { cat: "ci",         name: "Cold Read",              desc: "catch ten tells across imposter scenes." },
+  full_spectrum:       { cat: "covers",     name: "Full Spectrum",           desc: "hold every core cover." },
+  specialist:          { cat: "covers",     name: "Specialist",              desc: "run ten missions under a single cover." },
+  deep_specialist:     { cat: "covers",     name: "Deep Specialist",         desc: "run twenty-five missions under a single cover." },
   irrational_asset:    { cat: "dead_drop",  name: "Irrational Asset",       desc: "discover the pi dead drop." },
   signal_intercept:    { cat: "dead_drop",  name: "Signal Intercept",       desc: "decode the morse transmission." },
   off_the_grid:        { cat: "dead_drop",  name: "Off The Grid",           desc: "trigger the ultimate score egg." },

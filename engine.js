@@ -100,7 +100,7 @@ function poolStatusLine() {
   }
   const parts = [];
   if (remaining <= 4) parts.push(`🐾 The Handler's tail lashes: “Nine lives, ${computeRank()}!”`);
-  if (document.getElementById("regenToggle").checked) {
+  if (toggleOn("regen")) {
     const atFull = spent === 0;
     let hearts = "";
     for (let i = 0; i < REGEN_STREAK_LENGTH; i++) {
@@ -116,7 +116,7 @@ function poolStatusLine() {
 function registerCleanStreak(clean) {
   if (!clean) { cleanStreak = 0; return false; }
   cleanStreak++;
-  if (!document.getElementById("regenToggle").checked) return false;
+  if (!toggleOn("regen")) return false;
   if (cleanStreak < REGEN_STREAK_LENGTH) return false;
   if (spent === 0) return false;
   spent = Math.max(spent - REGEN_LIVES, 0);
@@ -190,7 +190,7 @@ function missionInteractable() {
 }
 
 function missionStatusLine() {
-  const guardianOn = document.getElementById("guardianToggle").checked;
+  const guardianOn = toggleOn("guardian");
   if (retired && current && current.chosen !== null) {
     return guardianOn
       ? "🐾 That answer uses your last life. Change it to save the cover, or end the run."
@@ -217,6 +217,38 @@ function computeRows(scenario, legend, idx) {
   });
 }
 
+function handleRechooseGuard(idx) {
+  const guardianOn = toggleOn("guardian");
+  if (current.chosen === idx) {
+    if (!retired && current.reselecting) {
+      current.reselecting = false;
+      renderMission();
+      return false;
+    }
+    if (retired && guardianOn) {
+      guardianSaves++;
+      guardianStreakResets++;
+      goBack(true);
+    }
+    return false;
+  }
+  return guardianOn && current.reselecting;
+}
+
+function undoRechoose() {
+  if (current.regenApplied) spent += REGEN_LIVES;
+  spent -= current.total;
+  history.pop();
+  cleanStreak = current.streakBefore || 0;
+}
+
+function applyCleanStreak(clean) {
+  current.streakBefore = cleanStreak;
+  const regenJustFired = registerCleanStreak(clean);
+  current.regenApplied = regenJustFired;
+  return regenJustFired;
+}
+
 function commitChoice(total, clean, timedOut, entry) {
   spent += total;
   retired = spent >= POOL_SIZE;
@@ -232,7 +264,7 @@ function commitChoice(total, clean, timedOut, entry) {
 
 function chooseOption(idx) {
   if (!current || current.timedOut) return;
-  const guardianOn = document.getElementById("guardianToggle").checked;
+  const guardianOn = toggleOn("guardian");
   const rechoose = current.chosen !== null;
   if (rechoose && !handleRechooseGuard(idx)) return;
   const s = current.scenario;
@@ -325,7 +357,7 @@ function goBack(breakStreak) {
 }
 
 function startReselect() {
-  const guardianOn = document.getElementById("guardianToggle").checked;
+  const guardianOn = toggleOn("guardian");
   if (!current || current.chosen === null || !guardianOn) return;
   if (retired) undoRecordedRun();
   current.reselecting = true;
@@ -375,6 +407,14 @@ const CHALLENGE_DEFAULT_SECS = 30;
 function challengeEnabled() {
   const el = document.getElementById("challengeToggle");
   return !!(el && el.checked);
+}
+
+function toggleOn(name) {
+  return document.getElementById(name + "Toggle").checked;
+}
+
+function timeoutCount() {
+  return history.filter(h => h.timedOut).length;
 }
 
 function challengeDurationMs(scenario) {
@@ -748,6 +788,9 @@ function recencySafePool(cands) {
   return cands;
 }
 
+const EGG_BUILDERS = { EPI1: buildEggPi1, EMC1: buildEggMorse1, EMC2: buildEggMorse2, EMC3: buildEggMorse3 };
+const MORSE_EGG_IDS = ["EMC1", "EMC2", "EMC3"];
+
 function newMission() {
   if (!runTimerStarted) { runStartedAt = Date.now(); runTimerStarted = true; }
   coverAnchored = false;
@@ -755,7 +798,7 @@ function newMission() {
     if (current) { current = null; announce(poolStatusLine()); renderMission(); renderDevPanel(); }
     return;
   }
-  const endlessOn = document.getElementById("endlessToggle").checked;
+  const endlessOn = toggleOn("endless");
   if (!endlessOn && completedCount + skippedCount >= RUN_MISSION_CAP) {
     trainingComplete = true;
     recordRunEnd("complete");
@@ -776,15 +819,12 @@ function newMission() {
     }
     if (wasEgg.id === "morse") {
       recordEgg("morse");
-      const morseIds = ["EMC1", "EMC2", "EMC3"];
-      const morseBuilders = [buildEggMorse1, buildEggMorse2, buildEggMorse3];
       const stats = loadStats();
       const found = stats.aggregates.eggsFound || [];
-      const unseen = morseIds.filter(id => found.indexOf(id) === -1);
-      const pick = unseen.length ? unseen[rollInt(unseen.length)] : morseIds[rollInt(3)];
-      const idx = morseIds.indexOf(pick);
+      const unseen = MORSE_EGG_IDS.filter(id => found.indexOf(id) === -1);
+      const pick = unseen.length ? unseen[rollInt(unseen.length)] : MORSE_EGG_IDS[rollInt(MORSE_EGG_IDS.length)];
       recordEgg(pick);
-      startScenario(morseBuilders[idx]());
+      startScenario(EGG_BUILDERS[pick]());
       return;
     }
   } else {
@@ -1091,6 +1131,18 @@ function betterRank(a, b) {
   return RANK_ORDER.indexOf(b) > RANK_ORDER.indexOf(a) ? b : a;
 }
 
+function walkHistoryOutcomes(onSpine, onWho) {
+  history.forEach(h => {
+    if (h.timedOut) return;
+    if (h.rows && h.rows.length) {
+      const spine = h.rows[0];
+      onSpine(spine.rowId, spine.tier);
+    } else {
+      onWho(h.total === 0 ? "clean" : "crack", h.sceneCaught || 0, h.sceneReadable || 0);
+    }
+  });
+}
+
 function recordRunEnd(outcome) {
   if (runRecorded) return;
   runRecorded = true;
@@ -1109,13 +1161,13 @@ function recordRunEnd(outcome) {
     cleanMissions: history.filter(h => h.total === 0).length,
     cracks: history.filter(h => h.total >= 2).length,
     challenge: challengeEnabled(),
-    guardian: document.getElementById("guardianToggle").checked,
-    regen: document.getElementById("regenToggle").checked,
-    endless: document.getElementById("endlessToggle").checked,
+    guardian: toggleOn("guardian"),
+    regen: toggleOn("regen"),
+    endless: toggleOn("endless"),
     livesLeft: Math.max(POOL_SIZE - spent, 0),
     missionMs: timedAnswers.reduce((t, h) => t + h.msTaken, 0),
     missionsTimed: timedAnswers.length,
-    timeouts: history.filter(h => h.timedOut).length,
+    timeouts: timeoutCount(),
     runMs: elapsedMs(),
     guardianSaves,
     streakResets: guardianStreakResets,
@@ -1136,19 +1188,15 @@ function recordRunEnd(outcome) {
   stats.aggregates.totalLivesLeft = (stats.aggregates.totalLivesLeft || 0) + run.livesLeft;
   stats.aggregates.livesRuns = (stats.aggregates.livesRuns || 0) + 1;
   const covers = stats.aggregates.covers || {};
-  history.forEach(h => {
-    if (h.timedOut) return;
-    if (h.rows && h.rows.length) {
-      const spine = h.rows[0];
-      if (!covers[spine.rowId]) covers[spine.rowId] = { clean: 0, hairline: 0, crack: 0, missions: 0 };
-      covers[spine.rowId].missions++;
-      covers[spine.rowId][spine.tier]++;
-    } else {
-      stats.aggregates.whoTotal = (stats.aggregates.whoTotal || 0) + 1;
-      if (h.total === 0) stats.aggregates.whoCorrect = (stats.aggregates.whoCorrect || 0) + 1;
-      stats.aggregates.whoScenesCaught = (stats.aggregates.whoScenesCaught || 0) + (h.sceneCaught || 0);
-      stats.aggregates.whoScenesReadable = (stats.aggregates.whoScenesReadable || 0) + (h.sceneReadable || 0);
-    }
+  walkHistoryOutcomes((rowId, tier) => {
+    if (!covers[rowId]) covers[rowId] = { clean: 0, hairline: 0, crack: 0, missions: 0 };
+    covers[rowId].missions++;
+    covers[rowId][tier]++;
+  }, (tier, caught, readable) => {
+    stats.aggregates.whoTotal = (stats.aggregates.whoTotal || 0) + 1;
+    if (tier === "clean") stats.aggregates.whoCorrect = (stats.aggregates.whoCorrect || 0) + 1;
+    stats.aggregates.whoScenesCaught = (stats.aggregates.whoScenesCaught || 0) + caught;
+    stats.aggregates.whoScenesReadable = (stats.aggregates.whoScenesReadable || 0) + readable;
   });
   stats.aggregates.covers = covers;
   if (run.missionsTimed > 0) {

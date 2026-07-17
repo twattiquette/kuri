@@ -286,7 +286,7 @@ function renderRunEndScreen(area, outcome) {
 function renderMission() {
   const area = document.getElementById("missionArea");
   const finalised = isFinalised();
-  const guardianOn = document.getElementById("guardianToggle").checked;
+  const guardianOn = toggleOn("guardian");
   renderLivesBar();
   renderTally();
   renderChallengeTimer();
@@ -361,7 +361,15 @@ function renderMission() {
 
   const answered = current.chosen !== null;
   const resolved = answered || current.timedOut;
-  html += `<div class="status-row"><div class="status-line"></div>${timerControlsHtml()}</div>`;
+  html += bottomBarHtml(answered, resolved, guardianOn, s.options.length, "select");
+
+  area.innerHTML = html;
+  setStatus(missionStatusLine());
+  renderChallengeTimer();
+}
+
+function bottomBarHtml(answered, resolved, guardianOn, count, verb) {
+  let html = `<div class="status-row"><div class="status-line"></div>${timerControlsHtml()}</div>`;
   html += `<div class="controls bottom-controls" role="group" aria-label="mission controls">`;
   if (!resolved && skippedStack.length) html += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
   else if (answered && guardianOn && !current.reselecting) html += `<button id="changeAnswerBtn" class="back-btn" data-action="reselect">↺ Change answer</button>`;
@@ -370,11 +378,8 @@ function renderMission() {
   html += `</div></div>`;
   const leftHint = !resolved && skippedStack.length ? `<kbd>←</kbd> return to skipped`
     : (answered && guardianOn && !current.reselecting ? `<kbd>←</kbd> change answer` : "");
-  html += `<div class="kbd-hint"><span>${leftHint}</span><span><kbd>0</kbd> cover · <kbd>1</kbd>–<kbd>${s.options.length}</kbd> select</span><span>skip / next mission <kbd>→</kbd></span></div>`;
-
-  area.innerHTML = html;
-  setStatus(missionStatusLine());
-  renderChallengeTimer();
+  html += `<div class="kbd-hint"><span>${leftHint}</span><span><kbd>0</kbd> cover · <kbd>1</kbd>–<kbd>${count}</kbd> ${verb}</span><span>skip / next mission <kbd>→</kbd></span></div>`;
+  return html;
 }
 
 function renderDebrief() {
@@ -407,18 +412,11 @@ function computeCoverTrendStats() {
     stats[id].missions++;
     stats[id][tier]++;
   };
-  history.forEach(h => {
-    if (h.timedOut) return;
-    if (h.rows && h.rows.length) {
-      const spine = h.rows[0];
-      bump(spine.rowId, spine.tier);
-    } else {
-      who.total++;
-      const tier = h.total === 0 ? "clean" : "crack";
-      if (tier === "clean") who.correct++;
-      whoSceneByTier[tier].caught += h.sceneCaught || 0;
-      whoSceneByTier[tier].readable += h.sceneReadable || 0;
-    }
+  walkHistoryOutcomes((rowId, tier) => bump(rowId, tier), (tier, caught, readable) => {
+    who.total++;
+    if (tier === "clean") who.correct++;
+    whoSceneByTier[tier].caught += caught;
+    whoSceneByTier[tier].readable += readable;
   });
   const sortedIds = Object.keys(stats).sort((a, b) => {
     const crackDiff = (stats[a].crack / stats[a].missions) - (stats[b].crack / stats[b].missions);
@@ -455,14 +453,12 @@ function computeCoverTrendStats() {
 
 function extraRunStats() {
   const regenFires = history.filter(h => h.regenApplied).length;
-  const timeouts = history.filter(h => h.timedOut).length;
-  return { regenFires, livesReclaimed: regenFires * REGEN_LIVES, timeouts, guardianSaves, guardianStreakResets };
+  return { regenFires, livesReclaimed: regenFires * REGEN_LIVES, timeouts: timeoutCount(), guardianSaves, guardianStreakResets };
 }
 
 function fullTrendsLines() {
   const { groups, who } = computeCoverTrendStats();
-  const bucketOrder = ["clean", "hairline", "crack"];
-  const present = bucketOrder.filter(b => groups[b]);
+  const present = TREND_BUCKET_ORDER.filter(b => groups[b]);
   const lines = [];
   present.forEach(b => {
     lines.push({ kind: "summary", text: `${TREND_BUCKET_LABEL[b]}: ${groups[b].count}` });
@@ -546,7 +542,7 @@ function drawReportCanvas(outcome, img) {
   const headerY = 50, avatarX = marginX;
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const rankText = retired ? RANK_NAMES.burned : computeRank();
-  const failedCount = history.filter(h => h.timedOut).length;
+  const failedCount = timeoutCount();
   const missionsText = `${completedCount} completed · ${skippedCount} skipped` + (failedCount ? ` · ${failedCount} failed` : "");
   const runTimeText = formatElapsed(elapsedMs());
   const livesValueText = `${remaining} / ${POOL_SIZE}`;
@@ -756,10 +752,10 @@ function retentionNudgeHtml() {
   return `<div class="retention-nudge">${lines.map(l => `<p>${l}</p>`).join("")}</div>`;
 }
 
-function formatElapsed(ms) {
-  const s = Math.max(0, Math.round(ms / 1000));
+function formatElapsed(ms, padMinutes) {
+  const s = Math.max(0, Math.round((ms || 0) / 1000));
   const m = Math.floor(s / 60);
-  return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+  return m > 0 || padMinutes ? `${m}m ${s % 60}s` : `${s}s`;
 }
 
 function runReportHtml() {
@@ -840,38 +836,6 @@ function formatTimestamp(ts) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())} UTC${offSign}${offH}`;
 }
 
-function handleRechooseGuard(idx) {
-  const guardianOn = document.getElementById("guardianToggle").checked;
-  if (current.chosen === idx) {
-    if (!retired && current.reselecting) {
-      current.reselecting = false;
-      renderMission();
-      return false;
-    }
-    if (retired && guardianOn) {
-      guardianSaves++;
-      guardianStreakResets++;
-      goBack(true);
-    }
-    return false;
-  }
-  return guardianOn && current.reselecting;
-}
-
-function undoRechoose() {
-  if (current.regenApplied) spent += REGEN_LIVES;
-  spent -= current.total;
-  history.pop();
-  cleanStreak = current.streakBefore || 0;
-}
-
-function applyCleanStreak(clean) {
-  current.streakBefore = cleanStreak;
-  const regenJustFired = registerCleanStreak(clean);
-  current.regenApplied = regenJustFired;
-  return regenJustFired;
-}
-
 function afterChoiceRender(skipFocus) {
   renderMission();
   renderDevPanel();
@@ -884,7 +848,7 @@ function afterChoiceRender(skipFocus) {
 function renderTally() {
   const el = document.getElementById("tally");
   if (el) {
-    const failedPart = challengeEnabled() ? ` · <b>${history.filter(h => h.timedOut).length}</b> failed` : "";
+    const failedPart = challengeEnabled() ? ` · <b>${timeoutCount()}</b> failed` : "";
     el.innerHTML = `<span class="stat-label">Missions</span> <b>${completedCount}</b> completed · <b>${skippedCount}</b> skipped${failedPart}`;
   }
   renderRunClock();

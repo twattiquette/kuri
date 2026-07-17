@@ -64,11 +64,6 @@ function truncPreview(text, n) {
   return (sp > max - 12 ? cut.slice(0, sp) : cut).replace(/\s+$/, "") + "…";
 }
 
-function fmtRunDuration(ms) {
-  const total = Math.round((ms || 0) / 1000);
-  return `${Math.floor(total / 60)}m ${total % 60}s`;
-}
-
 function tierGlyph(t) { return t === "clean" ? "✓" : t === "crack" ? "✗" : "~"; }
 
 function debugHistoryLine(h) {
@@ -101,7 +96,7 @@ function buildDebugLogMarkdown() {
   lines.push(`${completedCount}done ${skippedCount}skip guardian:${guardianSaves} resets:${guardianStreakResets}`);
   const toggles = ["guardian", "regen", "endless", "challenge"]
     .map(k => {
-      const on = document.getElementById(k + "Toggle").checked;
+      const on = toggleOn(k);
       const mark = on ? "✓" : "✗";
       if (k === "challenge") {
         const dur = on && current ? challengeDurationMs(current.scenario) : null;
@@ -109,8 +104,7 @@ function buildDebugLogMarkdown() {
       }
       return `${k[0]}:${mark}`;
     }).join(" ");
-  const timeoutCount = history.filter(h => h.timedOut).length;
-  lines.push(`${currentPreset} ${toggles} timeouts:${timeoutCount} ${fmtRunDuration(elapsedMs())}`);
+  lines.push(`${currentPreset} ${toggles} timeouts:${timeoutCount()} ${formatElapsed(elapsedMs(), true)}`);
   lines.push("");
   if (!history.length) {
     lines.push("no missions yet");
@@ -350,9 +344,9 @@ function checkPresetStillMatches() {
   if (applyingPreset || currentPreset === "custom") return;
   const preset = DIFFICULTY_PRESETS[currentPreset];
   const state = {
-    guardian: document.getElementById("guardianToggle").checked,
-    regen: document.getElementById("regenToggle").checked,
-    endless: document.getElementById("endlessToggle").checked,
+    guardian: toggleOn("guardian"),
+    regen: toggleOn("regen"),
+    endless: toggleOn("endless"),
   };
   if (preset.guardian !== state.guardian || preset.regen !== state.regen || preset.endless !== state.endless) {
     setPresetLabel("custom");
@@ -363,8 +357,6 @@ function initDifficulty() {
   document.getElementById("difficultyCycle").textContent = currentPreset;
   refreshToggleIcons();
 }
-
-const EGG_BUILDERS = { EPI1: buildEggPi1, EMC1: buildEggMorse1, EMC2: buildEggMorse2, EMC3: buildEggMorse3 };
 
 function onDelegatedClick(e) {
   const el = e.target.closest("[data-action]");
@@ -515,7 +507,7 @@ function onGameKeydown(e) {
       e.preventDefault();
       returnToSkipped();
     } else if (current.chosen !== null && !pendingEgg) {
-      const guardianOn = document.getElementById("guardianToggle").checked;
+      const guardianOn = toggleOn("guardian");
       if (guardianOn && !retired && !current.reselecting) {
         e.preventDefault();
         startReselect();
