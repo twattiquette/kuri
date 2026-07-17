@@ -263,26 +263,39 @@ function commitChoice(total, clean, timedOut, entry) {
   return regenJustFired;
 }
 
-function chooseOption(idx) {
-  if (!current || current.timedOut) return;
-  if (Date.now() - lastWithdrawAt < 350) return;
+function beginAnswer(idx) {
+  if (!current || current.timedOut) return null;
+  if (Date.now() - lastWithdrawAt < 350) return null;
   const guardianOn = toggleOn("guardian");
   const rechoose = current.chosen !== null;
-  if (rechoose && !handleRechooseGuard(idx)) return;
-  const s = current.scenario;
-  const rows = computeRows(s, current.legend, idx);
-  const rawExposure = rows.reduce((a, r) => a + r.exposure, 0);
-  const guardianReselect = rechoose && guardianOn && current.reselecting;
+  if (rechoose && !handleRechooseGuard(idx)) return null;
+  return { guardianOn, rechoose };
+}
 
-  let freshChange = false;
+function applyAnswerTransition(rechoose, guardianReselect, idx) {
   if (rechoose) {
     undoRechoose();
     if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; answersChanged++; }
     current.reselecting = false;
-  } else {
-    completedCount++;
-    freshChange = noteFreshAnswer(idx);
+    return false;
   }
+  completedCount++;
+  return noteFreshAnswer(idx);
+}
+
+function answerMsTaken() {
+  return current.startedAt != null ? Date.now() - current.startedAt : 0;
+}
+
+function chooseOption(idx) {
+  const ctx = beginAnswer(idx);
+  if (!ctx) return;
+  const { guardianOn, rechoose } = ctx;
+  const s = current.scenario;
+  const rows = computeRows(s, current.legend, idx);
+  const rawExposure = rows.reduce((a, r) => a + r.exposure, 0);
+  const guardianReselect = rechoose && guardianOn && current.reselecting;
+  const freshChange = applyAnswerTransition(rechoose, guardianReselect, idx);
 
   const remainingBefore = POOL_SIZE - spent;
   const spineRow = rows.find(r => r.rowId === current.legend.spineId);
@@ -302,7 +315,7 @@ function chooseOption(idx) {
 
   const clean = current.legend.facetIds.length ? spineRow.tier === "clean" : total === 0;
   const streakClean = guardianReselect ? false : clean;
-  const msTaken = current.startedAt != null ? Date.now() - current.startedAt : 0;
+  const msTaken = answerMsTaken();
   const regenJustFired = commitChoice(total, streakClean, false, {
     id: s.id,
     cover: (COVERS[current.legend.spineId] || FACETS[current.legend.spineId]).name,
@@ -811,6 +824,10 @@ function newMission() {
   }
   const endlessOn = toggleOn("endless");
   if (!endlessOn && completedCount + skippedCount >= RUN_MISSION_CAP) {
+    if (current && current.chosen === null && !current.timedOut) {
+      skippedCount++;
+      skippedStack.push(current);
+    }
     trainingComplete = true;
     recordRunEnd("complete");
     current = null;
@@ -869,6 +886,10 @@ function newMission() {
     }
   }
   if (!candidates.length) {
+    if (current && current.chosen === null && !current.timedOut) {
+      skippedCount++;
+      skippedStack.push(current);
+    }
     trainingComplete = true;
     allMissionsCleared = true;
     recordRunEnd("complete");
@@ -1118,6 +1139,14 @@ const ACHIEVEMENTS = [
   { id: "weathered", ...ACHIEVEMENT_COPY.weathered,
     check: stats => (stats.aggregates.totalFailed || 0) >= 5,
     progress: stats => ({ current: stats.aggregates.totalFailed || 0, target: 5 }) },
+  { id: "went_to_ground", ...ACHIEVEMENT_COPY.went_to_ground,
+    check: stats => stats.runs.some(r => r.outcome === "skipped") },
+  { id: "gone_dark", ...ACHIEVEMENT_COPY.gone_dark,
+    check: stats => stats.runs.some(r => (r.skipped || 0) >= 10),
+    progress: stats => ({ current: Math.max(0, ...stats.runs.map(r => r.skipped || 0)), target: 10 }) },
+  { id: "awol", ...ACHIEVEMENT_COPY.awol,
+    check: stats => (stats.aggregates.totalSkipped || 0) >= 50,
+    progress: stats => ({ current: stats.aggregates.totalSkipped || 0, target: 50 }) },
 
   { id: "infinity", ...ACHIEVEMENT_COPY.infinity,
     check: stats => stats.runs.some(r => r.outcome === "complete" && r.endless && r.allCleared) },

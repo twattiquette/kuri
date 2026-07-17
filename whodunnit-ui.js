@@ -121,11 +121,9 @@ function readBeat(i, call) {
 }
 
 function accuse(idx) {
-  if (!current || current.timedOut) return;
-  if (Date.now() - lastWithdrawAt < 350) return;
-  const guardianOn = toggleOn("guardian");
-  const rechoose = current.chosen !== null;
-  if (rechoose && !handleRechooseGuard(idx)) return;
+  const ctx = beginAnswer(idx);
+  if (!ctx) return;
+  const { guardianOn, rechoose } = ctx;
   const s = current.scenario;
   const liarIdx = current.cast.imposter;
   const correct = idx === liarIdx;
@@ -144,15 +142,7 @@ function accuse(idx) {
   });
 
   const guardianReselect = rechoose && guardianOn && current.reselecting;
-  let freshChange = false;
-  if (rechoose) {
-    undoRechoose();
-    if (guardianReselect) { cleanStreak = 0; guardianStreakResets++; answersChanged++; }
-    current.reselecting = false;
-  } else {
-    completedCount++;
-    freshChange = noteFreshAnswer(idx);
-  }
+  const freshChange = applyAnswerTransition(rechoose, guardianReselect, idx);
 
   current.chosen = idx;
   current.total = total;
@@ -160,7 +150,7 @@ function accuse(idx) {
   current.readEarned = earned;
 
   const streakClean = guardianReselect ? false : correct;
-  const msTaken = current.startedAt != null ? Date.now() - current.startedAt : 0;
+  const msTaken = answerMsTaken();
   const regenJustFired = commitChoice(total, streakClean, false, {
     id: s.id,
     cover: COVERS[current.legend.spineId].name,
