@@ -160,7 +160,15 @@ function renderRecords() {
   const agg = stats.aggregates || {};
   const note = `<p class="records-note">${RECORDS_COPY.note}` +
     (stats.runs.length ? ` <button type="button" class="records-clear" data-action="records-clear">${RECORDS_COPY.clearBtn}</button>` : ``) +
-    `</p>`;
+    ` <button type="button" class="records-clear" data-action="records-export">${RECORDS_COPY.exportBtn}</button>` +
+    ` <button type="button" class="records-clear" data-action="records-import-toggle">${RECORDS_COPY.importBtn}</button>` +
+    `</p>` +
+    `<div class="records-import hidden" id="recordsImportArea">` +
+    `<textarea class="records-import-input" id="recordsImportInput" placeholder="${RECORDS_COPY.importPlaceholder}" rows="3"></textarea>` +
+    `<p class="records-import-confirm">${RECORDS_COPY.importConfirm} ` +
+    `<button type="button" class="records-clear" data-action="records-import-apply">${RECORDS_COPY.importApply}</button> ` +
+    `<button type="button" class="records-clear" data-action="records-import-cancel">${RECORDS_COPY.importCancel}</button></p>` +
+    `</div>`;
   const heading = `<div class="achievements-header">${RECORDS_COPY.heading}</div>`;
   if (!stats.runs.length) {
     panel.innerHTML = `${heading}<p class="records-empty">${RECORDS_COPY.empty}</p>${note}`;
@@ -399,6 +407,43 @@ function onDelegatedClick(e) {
         el.dataset.armed = "1";
         el.textContent = "click again to clear runs and badges";
       }
+      break;
+    }
+    case "records-export": {
+      const str = exportRecordString();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(str).then(() => {
+          el.textContent = RECORDS_COPY.exportCopied;
+          setTimeout(() => { el.textContent = RECORDS_COPY.exportBtn; }, 1500);
+        });
+      } else {
+        const area = document.getElementById("recordsImportArea");
+        const input = document.getElementById("recordsImportInput");
+        if (area && input) { area.classList.remove("hidden"); input.value = str; input.select(); }
+      }
+      break;
+    }
+    case "records-import-toggle": {
+      const area = document.getElementById("recordsImportArea");
+      if (area) { area.classList.toggle("hidden"); }
+      break;
+    }
+    case "records-import-apply": {
+      const input = document.getElementById("recordsImportInput");
+      if (!input || !input.value.trim()) break;
+      const parsed = parseRecordString(input.value);
+      if (!parsed) {
+        el.textContent = RECORDS_COPY.importFail;
+        setTimeout(() => { el.textContent = RECORDS_COPY.importApply; }, 1500);
+      } else {
+        saveStats(parsed);
+        renderRecords();
+      }
+      break;
+    }
+    case "records-import-cancel": {
+      const area = document.getElementById("recordsImportArea");
+      if (area) area.classList.add("hidden");
       break;
     }
     case "toggle-all": {

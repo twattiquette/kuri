@@ -96,6 +96,9 @@
   .records-note { font-size: 0.85em; color: var(--dim); margin: 0; }
   .records-clear { background: none; border: none; padding: 0; margin-left: 4px; font-size: 1em; color: var(--dim); text-decoration: underline; cursor: pointer; }
   .records-clear:hover, .records-clear:focus-visible, .records-clear[data-armed] { color: var(--accent); }
+  .records-import { margin: 6px 0; }
+  .records-import-input { width: 100%; box-sizing: border-box; font-family: inherit; font-size: 0.85em; background: var(--bg); color: var(--fg); border: 1px solid var(--dim); border-radius: 4px; padding: 4px 6px; resize: vertical; }
+  .records-import-confirm { font-size: 0.85em; color: var(--dim); margin: 4px 0 0; }
   .achievements { margin: 4px 0 10px; }
   .achievements-header { color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.85em; margin-bottom: 6px; }
   .toggle-all { background: none; border: none; padding: 0; margin-left: 6px; font-size: 1em; color: var(--dim); text-decoration: underline; text-transform: none; letter-spacing: 0; cursor: pointer; }

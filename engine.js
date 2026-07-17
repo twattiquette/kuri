@@ -992,6 +992,21 @@ function saveStats(obj) {
   try { localStorage.setItem(STATS_KEY, JSON.stringify(obj)); } catch (e) {}
 }
 
+function exportRecordString() {
+  return btoa(encodeURIComponent(JSON.stringify(loadStats())));
+}
+
+function parseRecordString(str) {
+  try {
+    const json = JSON.parse(decodeURIComponent(atob(str.trim())));
+    if (!json || typeof json !== "object") return null;
+    if (!Array.isArray(json.runs) || !json.aggregates || !Array.isArray(json.unlocked)) return null;
+    return json;
+  } catch (e) {
+    return null;
+  }
+}
+
 function recordEgg(id) {
   const stats = loadStats();
   if (!Array.isArray(stats.aggregates.eggsFound)) stats.aggregates.eggsFound = [];

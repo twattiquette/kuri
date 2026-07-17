@@ -1,4 +1,4 @@
-const VERSION = "0.75.14-alpha";
+const VERSION = "0.76.0-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1346,6 +1346,15 @@ const RECORDS_COPY = {
   heading: "service record",
   note: "local personal records, stored on this device only.",
   clearBtn: "clear records",
+  exportBtn: "export",
+  importBtn: "import",
+  importPlaceholder: "paste exported record string here",
+  importConfirm: "overwrite current records?",
+  importApply: "apply",
+  importCancel: "cancel",
+  importSuccess: "records imported",
+  importFail: "invalid record string",
+  exportCopied: "copied!",
   empty: "no runs recorded yet.",
   achievementsHeading: "achievements",
   commendationsHeading: "commendations",
