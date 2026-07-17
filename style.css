@@ -97,7 +97,7 @@
   .achievements { margin: 4px 0 10px; }
   .achievements-header { color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.85em; margin-bottom: 6px; }
   .achievements-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-  .achievements-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9em; }
+  .achievements-list li { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.9em; }
   .ach-name { font-weight: bold; }
   .ach-unlocked .ach-name { color: var(--accent); }
   .ach-locked { opacity: 0.5; }
