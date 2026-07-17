@@ -893,6 +893,7 @@ function newMission() {
     trainingComplete = true;
     allMissionsCleared = true;
     recordRunEnd("complete");
+    current = null;
     announce("Clean exit. Every mission combination has been run. Press Restart Game to start a new run.");
     renderMission();
     renderDevPanel();
