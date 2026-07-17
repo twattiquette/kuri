@@ -1,4 +1,4 @@
-const VERSION = "0.75.11-alpha";
+const VERSION = "0.75.12-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1373,19 +1373,19 @@ const RECORDS_COPY = {
     completed: "Completed",
     skipped: "Skipped",
     failed: "Failed",
-    guardian: "Guardian",
+    answersChanged: "Answers changed",
+    guardianSaves: "Guardian saves",
     regen: "Regen",
     streakResets: "Streak resets",
-    challenge: "Challenge",
+    timeouts: "Timeouts",
+    avgMission: "Avg mission",
     bestHeld: "Best (held)",
     worstCracked: "Worst (cracked)",
     imposters: "Imposters",
     scenes: "Scenes",
   },
   tips: {
-    guardian: "answers changed · run-end saves",
     regen: "lives regained",
-    challenge: "timeouts · avg mission time",
     imposters: "imposters identified",
     scenes: "suspect scenes read correctly",
   },
