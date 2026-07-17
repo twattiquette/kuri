@@ -1,4 +1,4 @@
-const VERSION = "0.74.3-alpha";
+const VERSION = "0.75.0-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 
@@ -1311,7 +1311,9 @@ const TREND_BUCKET_LABEL = { clean: "Held", hairline: "Hairline tells", crack: "
 const TREND_BUCKET_VERB = { clean: "held", hairline: "hairline tell", crack: "cracked" };
 const WHO_VERB = { clean: "named correctly", crack: "misread" };
 
-const OUTCOME_LABEL = { blown: "burnt", complete: "clean exit" };
+const WENT_TO_GROUND_BANNER = "went to ground";
+const OUTCOME_LABEL = { blown: "burnt", complete: "clean exit", skipped: WENT_TO_GROUND_BANNER };
+const SKIP_RETURN_PROMPT = "No new missions left. Return to your skipped missions to finish the run.";
 
 const BUTTON_COPY = {
   play: "Play",
@@ -1448,6 +1450,7 @@ const ACHIEVEMENT_COPY = {
   burn_notice:         { cat: "service",    name: "Burn Notice",            desc: "have your cover blown for the first time." },
   guardian_angel:      { cat: "service",    name: "Guardian Angel",         desc: "receive ten guardian saves across all runs." },
   nine_lives:          { cat: "service",    name: "Nine Lives",             desc: "regain nine lives across all runs." },
+  untouchable:         { cat: "service",    name: "Untouchable",            desc: "regain nine lives in a single run." },
   adaptable:           { cat: "service",    name: "Adaptable",              desc: "change your answer ten times across all runs." },
   weathered:           { cat: "service",    name: "Weathered",              desc: "survive five mission timeouts across all runs." },
   infinity:            { cat: "ops",        name: "To Infinity & Beyond",   desc: "clear every mission in endless mode." },

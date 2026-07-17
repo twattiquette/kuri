@@ -257,15 +257,20 @@ function renderScoreEgg(area, egg) {
   renderChallengeTimer();
 }
 
+function runEndBanner(blown) {
+  if (!blown && completedCount === 0) return WENT_TO_GROUND_BANNER.toUpperCase();
+  return OUTCOME_LABEL[blown ? "blown" : "complete"].toUpperCase();
+}
+
 function renderRunEndScreen(area, outcome) {
   const blown = outcome === "blown";
   if (blown) {
     const avatarEl = document.getElementById("avatar");
     if (avatarEl) avatarEl.src = assetImg("coverblown.png");
   }
-  const bannerText = OUTCOME_LABEL[blown ? "blown" : "complete"].toUpperCase();
-  let html = `<div class="debrief${blown ? " outcome-blown" : ""}">` +
-    `<p class="run-end-banner${blown ? " cracked" : ""}">${bannerText}</p>` +
+  const bannerText = runEndBanner(blown);
+  let html = `<div class="debrief ${blown ? "outcome-blown" : (completedCount === 0 ? "outcome-went-to-ground" : "outcome-complete")}">` +
+    `<p class="run-end-banner${blown ? " cracked" : (completedCount === 0 ? " went-to-ground" : "")}">${bannerText}</p>` +
     `<p class="handler-label"><img class="handler-portrait" src="${HANDLER_IMG}" alt="">THE HANDLER</p>` +
     `<div class="handler-prose">${handlerProseLines(outcome).map(t => `<p>${t}</p>`).join("")}</div>` +
     runReportHtml() +
@@ -293,9 +298,10 @@ function renderMission() {
   syncChallengeLock();
   const topSaveBtn = document.getElementById("saveReportBtnTop");
   if (topSaveBtn && !finalised && !trainingComplete) topSaveBtn.classList.add("hidden");
+  const skipReturnPrompt = !current && awaitingSkipReturn && skippedStack.length > 0;
   document.getElementById("newMission").textContent =
-    (trainingComplete || !current) ? BUTTON_COPY.startGame : (current.chosen === null && !current.timedOut ? BUTTON_COPY.skipArrow : (retired && guardianOn ? BUTTON_COPY.endRunArrow : BUTTON_COPY.nextMissionArrow));
-  document.getElementById("newMission").disabled = finalised || trainingComplete;
+    skipReturnPrompt ? BUTTON_COPY.nextMissionArrow : (trainingComplete || !current) ? BUTTON_COPY.startGame : (current.chosen === null && !current.timedOut ? BUTTON_COPY.skipArrow : (retired && guardianOn ? BUTTON_COPY.endRunArrow : BUTTON_COPY.nextMissionArrow));
+  document.getElementById("newMission").disabled = finalised || trainingComplete || skipReturnPrompt;
   document.getElementById("statusLine").classList.toggle("retired", finalised);
   document.getElementById("statusLine").classList.toggle("score-egg", !!pendingEgg);
   if (pendingEgg) {
@@ -311,6 +317,15 @@ function renderMission() {
   }
   if (trainingComplete) {
     renderRunEndScreen(area, "complete");
+    return;
+  }
+  if (skipReturnPrompt) {
+    let promptHtml = `<p class="sub">${SKIP_RETURN_PROMPT}</p>`;
+    promptHtml += `<div class="controls bottom-controls" role="group" aria-label="run controls">`;
+    promptHtml += `<button id="returnBtn" class="back-btn" data-action="return-skipped">↩ Return to skipped</button>`;
+    promptHtml += `<div class="util"></div></div>`;
+    area.innerHTML = promptHtml;
+    setStatus(poolStatusLine());
     return;
   }
   if (!current) {
@@ -533,8 +548,8 @@ function drawStatLine(ctx, label, value, x, y, pal) {
 function drawReportCanvas(outcome, img) {
   const isDark = document.documentElement.getAttribute("data-theme") !== "light";
   const pal = isDark
-    ? { bg: "#14161a", panel: "#1d2026", ink: "#d8dbe0", accent: "#c9a86a", danger: "#ea7070", win: "#5ec27a", muted: "#8a8f99", border: "#2e323b" }
-    : { bg: "#f6f4ef", panel: "#ffffff", ink: "#24262a", accent: "#8a621c", danger: "#9c2b2b", win: "#2f7d46", muted: "#6b6f76", border: "#cfc8b8" };
+    ? { bg: "#14161a", panel: "#1d2026", ink: "#d8dbe0", accent: "#c9a86a", danger: "#ea7070", win: "#5ec27a", amber: "#e0b94d", muted: "#8a8f99", border: "#2e323b" }
+    : { bg: "#f6f4ef", panel: "#ffffff", ink: "#24262a", accent: "#8a621c", danger: "#9c2b2b", win: "#2f7d46", amber: "#946a12", muted: "#6b6f76", border: "#cfc8b8" };
   const blown = outcome === "blown";
   const lines = fullTrendsLines();
 
@@ -552,7 +567,7 @@ function drawReportCanvas(outcome, img) {
   const livesIcons = Array.from({ length: POOL_SIZE }, (_, i) => i >= POOL_SIZE - spent ? "💀" : "🐱").join("");
   const scoreText = `${computeScore()}`;
   const titleText = "kuri · training report";
-  const bannerText = OUTCOME_LABEL[blown ? "blown" : "complete"].toUpperCase();
+  const bannerText = runEndBanner(blown);
 
   function statWidth(label, value) {
     ctx.font = "bold 10px sans-serif";
@@ -652,7 +667,7 @@ function drawReportCanvas(outcome, img) {
   drawStatLine(ctx, "RANK", rankText, afterScore + 20, sy, pal);
 
   ctx.font = "bold 18px sans-serif";
-  ctx.fillStyle = blown ? pal.danger : pal.win;
+  ctx.fillStyle = blown ? pal.danger : (completedCount === 0 ? pal.amber : pal.win);
   ctx.fillText(bannerText, marginX, bannerY);
 
   ctx.font = "13px sans-serif";
@@ -820,13 +835,14 @@ function handlerProseLines(outcome) {
       worstCoverFlavor(true),
     ];
   }
+  if (completedCount === 0) return [rankFlavorLine()];
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const lines = [
     "Clean exit on this run.",
     `You closed it out with ${remaining} of ${POOL_SIZE} lives in hand.`,
     rankFlavorLine(),
+    worstCoverFlavor(false),
   ];
-  if (completedCount > 0) lines.push(worstCoverFlavor(false));
   return lines;
 }
 

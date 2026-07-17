@@ -11,6 +11,7 @@ let guardianSaves = 0;
 let guardianStreakResets = 0;
 let answersChanged = 0;
 let usedLegends = {};
+let awaitingSkipReturn = false;
 let usedArchetypes = {};
 let shownEggs = {};
 let pendingEgg = null;
@@ -132,8 +133,7 @@ function unusedIndices(arr, used) {
 function availableSpines(scenario) {
   const used = usedLegends[scenario.id] || [];
   if (scenario.mode === "whodunnit") {
-    const ids = unusedIndices(scenario.suspects, used);
-    return ids.length ? ids : scenario.suspects.map((_, i) => i);
+    return unusedIndices(scenario.suspects, used);
   }
   if (scenario.mode === "fixed") {
     if (scenario.legendVariants) {
@@ -804,6 +804,7 @@ const MORSE_EGG_IDS = ["EMC1", "EMC2", "EMC3"];
 function newMission() {
   if (!runTimerStarted) { runStartedAt = Date.now(); runTimerStarted = true; }
   coverAnchored = false;
+  awaitingSkipReturn = false;
   if (retired) {
     if (current) { current = null; announce(poolStatusLine()); renderMission(); renderDevPanel(); }
     return;
@@ -851,10 +852,18 @@ function newMission() {
   let candidates = SCENARIOS.filter(s =>
     availableSpines(s).length > 0 && tierGateCheck(s)
   );
+  if (!candidates.length && skippedStack.length && completedCount > 0) {
+    awaitingSkipReturn = true;
+    current = null;
+    announce(SKIP_RETURN_PROMPT);
+    renderMission();
+    renderDevPanel();
+    return;
+  }
   if (!candidates.length) {
-    const unlockedIds = SCENARIOS.filter(s => tierGateCheck(s)).map(s => s.id);
-    const cycledUnlocked = unlockedIds.some(id => usedLegends[id] && usedLegends[id].length);
-    if (cycledUnlocked) {
+    allMissionsCleared = true;
+    if (endlessOn && completedCount > 0) {
+      const unlockedIds = SCENARIOS.filter(s => tierGateCheck(s)).map(s => s.id);
       unlockedIds.forEach(id => { usedLegends[id] = []; usedArchetypes[id] = []; });
       candidates = SCENARIOS.filter(s => availableSpines(s).length > 0 && tierGateCheck(s));
     }
@@ -1093,6 +1102,9 @@ const ACHIEVEMENTS = [
   { id: "nine_lives", ...ACHIEVEMENT_COPY.nine_lives,
     check: stats => (stats.aggregates.totalLivesRegained || 0) >= 9,
     progress: stats => ({ current: stats.aggregates.totalLivesRegained || 0, target: 9 }) },
+  { id: "untouchable", ...ACHIEVEMENT_COPY.untouchable,
+    check: stats => stats.runs.some(r => (r.livesRegained || 0) >= 9),
+    progress: stats => ({ current: Math.max(0, ...stats.runs.map(r => r.livesRegained || 0)), target: 9 }) },
   { id: "adaptable", ...ACHIEVEMENT_COPY.adaptable,
     check: stats => (stats.aggregates.totalAnswersChanged || 0) >= 10,
     progress: stats => ({ current: stats.aggregates.totalAnswersChanged || 0, target: 10 }) },
@@ -1157,6 +1169,7 @@ function walkHistoryOutcomes(onSpine, onWho) {
 function recordRunEnd(outcome) {
   if (runRecorded) return;
   runRecorded = true;
+  if (outcome === "complete" && completedCount === 0) outcome = "skipped";
   const stats = loadStats();
   statsBeforeRunEnd = JSON.parse(JSON.stringify(stats));
   const timedAnswers = challengeEnabled() ? history.filter(h => !h.timedOut && h.msTaken != null) : [];
@@ -1238,6 +1251,7 @@ function resetPool() {
   regenFired = false;
   skippedCount = 0;
   skippedStack = [];
+  awaitingSkipReturn = false;
   guardianSaves = 0;
   guardianStreakResets = 0;
   answersChanged = 0;

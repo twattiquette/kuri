@@ -226,9 +226,12 @@
 
   .debrief { background: var(--panel2); border-left: 3px solid var(--accent); padding: 10px 14px; margin-bottom: 14px; }
   .debrief.outcome-blown { border-left-color: var(--danger); }
+  .debrief.outcome-complete { border-left-color: var(--win); }
+  .debrief.outcome-went-to-ground { border-left-color: var(--hairline); }
   .debrief p { margin: 4px 0; }
   .run-end-banner { font-size: 1.1em; font-weight: bold; color: var(--win); margin: 0 0 6px; }
   .run-end-banner.cracked { color: var(--danger); }
+  .run-end-banner.went-to-ground { color: var(--hairline); }
   .debrief .reveal-para { margin: 10px 0 0; line-height: 1.5; font-size: 0.85em; color: var(--dim); }
   .handler-label { color: var(--dim); font-size: 0.8em; }
   .handler-prose p { font-size: 0.85em; color: var(--dim); margin: 4px 0; }

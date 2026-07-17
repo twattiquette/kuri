@@ -138,7 +138,7 @@ function renderCommendations() {
       const isUnlocked = unlocked.indexOf(a.id) !== -1;
       html += `<li class="${isUnlocked ? "ach-unlocked" : "ach-locked"}">` +
         `<span class="ach-name">${a.name}</span>` +
-        `<span class="ach-desc">${a.desc}</span></li>`;
+        `<span class="ach-desc">${a.desc.replace(/\.$/, "")}</span></li>`;
     });
     html += `</ul>`;
   });
@@ -471,7 +471,10 @@ function onGameKeydown(e) {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const tag = (e.target.tagName || "").toLowerCase();
   if (tag === "input" || tag === "select" || tag === "textarea") return;
-  if (!current) return;
+  if (!current) {
+    if (e.key === "ArrowLeft" && awaitingSkipReturn && skippedStack.length) { e.preventDefault(); returnToSkipped(); }
+    return;
+  }
   const n = parseInt(e.key, 10);
   const missionArea = document.getElementById("missionArea");
   const digitShortcutsAllowed = document.activeElement === document.body || (missionArea && missionArea.contains(document.activeElement));
