@@ -195,7 +195,7 @@ function renderRecords() {
   let coversBody = "";
   if (coverIds.length) {
     const c = agg.covers;
-    const nameOf = id => (COVERS[id] || FACETS[id]).name;
+    const nameOf = id => (COVERS[id] || FACETS[id]).name.replace(/^The /, "");
     const best = coverIds.slice().sort((a, b) => (c[b].clean / c[b].missions) - (c[a].clean / c[a].missions) || c[b].missions - c[a].missions)[0];
     const worst = coverIds.slice().sort((a, b) => (c[b].crack / c[b].missions) - (c[a].crack / c[a].missions) || c[b].missions - c[a].missions)[0];
     if (c[best].clean > 0) coversBody += stat(RECORDS_COPY.stats.bestHeld, `${nameOf(best)} ${c[best].clean}/${c[best].missions}`);
