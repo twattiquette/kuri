@@ -189,12 +189,10 @@ function renderRecords() {
     ? formatElapsed(agg.totalMissionMs / agg.totalTimedMissions)
     : "–";
   const modesGrp = grp(RECORDS_COPY.groups.modes,
-    stat(RECORDS_COPY.stats.answersChanged, agg.totalAnswersChanged || 0) +
-    stat(RECORDS_COPY.stats.guardianSaves, agg.totalGuardianSaves || 0) +
+    stat(RECORDS_COPY.stats.guardian, `${agg.totalAnswersChanged || 0} · ${agg.totalGuardianSaves || 0}`, RECORDS_COPY.tips.guardian) +
     stat(RECORDS_COPY.stats.regen, agg.totalLivesRegained || 0, RECORDS_COPY.tips.regen) +
     stat(RECORDS_COPY.stats.streakResets, agg.totalStreakResets || 0) +
-    stat(RECORDS_COPY.stats.timeouts, agg.totalFailed || 0) +
-    stat(RECORDS_COPY.stats.avgMission, avgMissionText));
+    stat(RECORDS_COPY.stats.challenge, `<span title="${RECORDS_COPY.tips.timeouts}">${agg.totalFailed || 0}</span> · <span title="${RECORDS_COPY.tips.avgMission}">${avgMissionText}</span>`));
   const coverIds = Object.keys(agg.covers || {});
   let coversBody = "";
   if (coverIds.length) {
