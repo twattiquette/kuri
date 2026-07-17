@@ -1226,7 +1226,7 @@ function walkHistoryOutcomes(onSpine, onWho) {
 function recordRunEnd(outcome) {
   if (runRecorded) return;
   runRecorded = true;
-  if (outcome === "complete" && completedCount === 0) outcome = "skipped";
+  if (outcome === "complete" && completedCount <= skippedCount + timeoutCount()) outcome = "skipped";
   const stats = loadStats();
   statsBeforeRunEnd = JSON.parse(JSON.stringify(stats));
   const timedAnswers = challengeEnabled() ? history.filter(h => !h.timedOut && h.msTaken != null) : [];

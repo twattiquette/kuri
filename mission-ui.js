@@ -124,7 +124,7 @@ function renderScoreEgg(area, egg) {
 }
 
 function runEndBanner(blown) {
-  if (!blown && completedCount === 0) return WENT_TO_GROUND_BANNER.toUpperCase();
+  if (!blown && completedCount <= skippedCount + timeoutCount()) return WENT_TO_GROUND_BANNER.toUpperCase();
   return OUTCOME_LABEL[blown ? "blown" : "complete"].toUpperCase();
 }
 
@@ -135,8 +135,8 @@ function renderRunEndScreen(area, outcome) {
     if (avatarEl) avatarEl.src = assetImg("coverblown.png");
   }
   const bannerText = runEndBanner(blown);
-  let html = `<div class="debrief ${blown ? "outcome-blown" : (completedCount === 0 ? "outcome-went-to-ground" : "outcome-complete")}">` +
-    `<p class="run-end-banner${blown ? " cracked" : (completedCount === 0 ? " went-to-ground" : "")}">${bannerText}</p>` +
+  let html = `<div class="debrief ${blown ? "outcome-blown" : (completedCount <= skippedCount + timeoutCount() ? "outcome-went-to-ground" : "outcome-complete")}">` +
+    `<p class="run-end-banner${blown ? " cracked" : (completedCount <= skippedCount + timeoutCount() ? " went-to-ground" : "")}">${bannerText}</p>` +
     `<p class="handler-label"><img class="handler-portrait" src="${HANDLER_IMG}" alt="">THE HANDLER</p>` +
     `<div class="handler-prose">${handlerProseLines(outcome).map(t => `<p>${t}</p>`).join("")}</div>` +
     runReportHtml() +
@@ -460,7 +460,7 @@ function handlerProseLines(outcome) {
       worstCoverFlavor(true),
     ];
   }
-  if (completedCount === 0) return [rankFlavorLine()];
+  if (completedCount <= skippedCount + timeoutCount()) return [rankFlavorLine()];
   const remaining = Math.max(POOL_SIZE - spent, 0);
   const lines = [
     "Clean exit on this run.",
