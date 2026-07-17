@@ -5,6 +5,8 @@
 !playtest.html
 !data.js
 !engine.js
+!morse.js
+!report.js
 !mission-ui.js
 !whodunnit-ui.js
 !app-chrome.js
