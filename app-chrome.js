@@ -206,20 +206,21 @@ function renderRecords() {
   const summary = `<div class="records-groups">${overallGrp}${timeGrp}${missionsGrp}${coversGrp}${modesGrp}</div>`;
   const recent = stats.runs.slice(-10).reverse();
   const modeFlags = [["guardian", "g"], ["regen", "r"], ["endless", "e"], ["challenge", "c"]];
+  const th = RECORDS_COPY.th;
   const rows = recent.map(run => {
     const isBest = agg.bestScore != null && run.score === agg.bestScore;
     const active = modeFlags.filter(f => run[f[0]]);
     const modeCell = active.length
-      ? `<td title="${active.map(f => f[0]).join(", ")}">${active.map(f => f[1]).join("")}</td>`
-      : `<td></td>`;
+      ? `<td data-label="${th.mode}" title="${active.map(f => f[0]).join(", ")}">${active.map(f => f[1]).join("")}</td>`
+      : `<td data-label="${th.mode}"></td>`;
     return `<tr class="${isBest ? "records-best" : ""}">` +
-      `<td>${formatRecordDate(run.ended)}</td>` +
-      `<td>${OUTCOME_LABEL[run.outcome] || run.outcome}</td>` +
-      `<td>${run.livesLeft == null ? "" : run.livesLeft}</td>` +
-      `<td>${run.score}</td>` +
-      `<td>${run.rank || ""}</td>` +
-      `<td>${run.runMs ? formatElapsed(run.runMs) : ""}</td>` +
-      `<td>${run.missions} · ${run.skipped} · ${run.timeouts}</td>` +
+      `<td data-label="${th.date}">${formatRecordDate(run.ended)}</td>` +
+      `<td data-label="${th.outcome}">${OUTCOME_LABEL[run.outcome] || run.outcome}</td>` +
+      `<td data-label="${th.lives}">${run.livesLeft == null ? "" : run.livesLeft}</td>` +
+      `<td data-label="${th.score}">${run.score}</td>` +
+      `<td data-label="${th.rank}">${run.rank || ""}</td>` +
+      `<td data-label="${th.runTime}">${run.runMs ? formatElapsed(run.runMs) : ""}</td>` +
+      `<td data-label="${th.missions}">${run.missions} · ${run.skipped} · ${run.timeouts}</td>` +
       modeCell +
       `</tr>`;
   }).join("");

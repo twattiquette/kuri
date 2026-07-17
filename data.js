@@ -1,4 +1,4 @@
-const VERSION = "0.75.4-alpha";
+const VERSION = "0.75.5-alpha";
 
 const TIER_VALUE = { clean: 0, hairline: 1, crack: 2 };
 

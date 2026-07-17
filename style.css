@@ -310,15 +310,30 @@
     .achievements-list { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 560px) {
-    .achievements-list { grid-template-columns: 1fr; }
+    .achievements-list { grid-template-columns: repeat(2, 1fr); gap: 3px; }
+    .achievements-list li { flex-wrap: nowrap; align-items: baseline; gap: 0; padding: 3px 6px; overflow: hidden; }
+    .achievements-list .ach-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .achievements-list .ach-desc { display: none; }
+    .ach-cat-label { margin: 6px 0 2px; }
+    .ach-cat-label:first-of-type { margin-top: 2px; }
     header > .collapse-bar { gap: 4px; }
     .stats-header { flex-wrap: nowrap; gap: 8px; }
     .avatar { height: 3.6em; }
+    .stats .lives .hearts { flex-wrap: nowrap; font-size: 0.85em; }
+    .stats .toggle-row { flex-wrap: nowrap; gap: 6px; }
+    .stats .toggle-row .section-toggle { flex: 1 1 0; min-width: 0; text-align: center; }
     .controls.bottom-controls { display: flex; flex-wrap: nowrap; gap: 8px; }
     .controls.bottom-controls > button { flex: 1 1 0; margin-left: 0; min-width: 0; }
     .controls.bottom-controls .util { flex: 1 1 0; margin-left: 0; min-width: 0; display: flex; }
     .controls.bottom-controls .util button { width: 100%; }
     .read-row button { min-height: 44px; }
     .section-toggle { min-height: 44px; min-width: 44px; }
+    .records-table-wrap { overflow-x: visible; }
+    .records-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .records-table, .records-table tbody, .records-table tr, .records-table td { display: block; width: 100%; }
+    .records-table tr { border: 1px solid var(--border); border-radius: 4px; margin-bottom: 8px; padding: 4px 8px; }
+    .records-table td { border: none; padding: 2px 0; display: flex; justify-content: space-between; gap: 12px; text-align: right; }
+    .records-table td:empty { display: none; }
+    .records-table td::before { content: attr(data-label); color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; text-align: left; }
   }
 
