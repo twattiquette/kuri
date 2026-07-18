@@ -825,12 +825,13 @@ function newMission() {
     if (current) { current = null; announce(poolStatusLine()); renderMission(); renderDevPanel(); }
     return;
   }
+  if (current && current.chosen === null && !current.timedOut) {
+    skippedCount++;
+    skippedStack.push(current);
+    current = null;
+  }
   const endlessOn = toggleOn("endless");
   if (!endlessOn && completedCount + skippedCount >= RUN_MISSION_CAP) {
-    if (current && current.chosen === null && !current.timedOut) {
-      skippedCount++;
-      skippedStack.push(current);
-    }
     trainingComplete = true;
     recordRunEnd("complete");
     current = null;
@@ -889,14 +890,9 @@ function newMission() {
     }
   }
   if (!candidates.length) {
-    if (current && current.chosen === null && !current.timedOut) {
-      skippedCount++;
-      skippedStack.push(current);
-    }
     trainingComplete = true;
     allMissionsCleared = true;
     recordRunEnd("complete");
-    current = null;
     announce("Clean exit. Every mission combination has been run. Press Restart Game to start a new run.");
     renderMission();
     renderDevPanel();
